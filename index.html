@@ -1,0 +1,2396 @@
+<!--
+================================================================================
+  サイバー・シールド（CYBER SHIELD）：1988-2026
+  Version: 1.0.0
+  Release Date: 2026
+  License: MIT License
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+  [Audio Assets]
+  - Stage BGM (Loop): Cyber Defense Showdown (1988-2026).mp3
+  - All Clear BGM (Once): Cyber Defense Safe Haven (Menu & Results).mp3
+  - Sound Effects (SE): Generated dynamically via Web Audio API
+================================================================================
+-->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>サイバー・シールド（CYBER SHIELD）：1988-2026 v1.0</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DotGothic16&family=Inter:wght@400;600;800&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #020617;
+      color: #f8fafc;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* RPG風メッセージウィンドウ */
+    .rpg-window {
+      background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
+      border: 3px solid #e2e8f0;
+      box-shadow: 0 0 0 2px #0f172a, inset 0 0 12px rgba(56, 189, 248, 0.25);
+      border-radius: 10px;
+    }
+
+    /* 選択肢ボタン（1択2段・高さ固定） */
+    .rpg-btn {
+      background: #1e293b;
+      border: 2px solid #475569;
+      transition: all 0.12s ease;
+    }
+    .rpg-btn:hover:not(:disabled) {
+      background: #334155;
+      border-color: #38bdf8;
+    }
+    .rpg-btn:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .pro-btn {
+      background: linear-gradient(90deg, #1e1b4b 0%, #312e81 100%);
+      border: 2px solid #818cf8;
+    }
+    .pro-btn:hover:not(:disabled) {
+      border-color: #c7d2fe;
+      box-shadow: 0 0 10px rgba(129, 140, 248, 0.5);
+    }
+
+    /* 上半分（ハッカー＋端末）と下半分（個人情報＋テキスト＋選択肢）のレイアウト */
+    .domain-transition {
+      transition: height 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* くもりガラス（すりガラス）フィルター */
+    .frosted-glass {
+      backdrop-filter: blur(11px) saturate(140%);
+      -webkit-backdrop-filter: blur(11px) saturate(140%);
+      background: rgba(15, 23, 42, 0.42);
+      transition: all 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .frosted-glass.revealed {
+      backdrop-filter: blur(0px) saturate(100%);
+      -webkit-backdrop-filter: blur(0px) saturate(100%);
+      background: rgba(15, 23, 42, 0);
+      pointer-events: none;
+    }
+
+    /* 5灯経路ランプのパルス発光 */
+    @keyframes lampAlertPulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 10px #ef4444, 0 0 20px #dc2626; }
+      50% { transform: scale(1.22); box-shadow: 0 0 18px #f87171, 0 0 32px #ef4444; }
+    }
+    .lamp-node-lit {
+      background-color: #ef4444 !important;
+      border-color: #fecaca !important;
+      animation: lampAlertPulse 0.85s infinite ease-in-out;
+    }
+
+    /* ブロック成功時の青い盾ポップイン */
+    @keyframes shieldPopIn {
+      0% { transform: scale(0.2) rotate(-15deg); opacity: 0; }
+      65% { transform: scale(1.2) rotate(5deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .animate-shield-pop {
+      animation: shieldPopIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* 侵入成功時の赤フラッシュ＆振動 */
+    @keyframes breachShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); }
+    }
+    .animate-breach {
+      animation: breachShake 0.45s ease-in-out;
+    }
+
+    /* 1988年 レトロCRT画面 */
+    .crt-screen {
+      font-family: 'DotGothic16', monospace;
+      background: radial-gradient(circle, #062412 0%, #020c06 100%);
+      color: #4ade80;
+      text-shadow: 0 0 5px rgba(74, 222, 128, 0.7);
+      position: relative;
+      overflow: hidden;
+    }
+    .crt-screen::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%);
+      background-size: 100% 4px;
+      pointer-events: none;
+    }
+
+    /* 画面ノイズ揺れ */
+    @keyframes screenGlitch {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(-2px, 1px); }
+      50% { transform: translate(2px, -1px); }
+      75% { transform: translate(-1px, -2px); }
+    }
+    .animate-glitch {
+      animation: screenGlitch 0.25s infinite;
+    }
+
+    /* 帯タイトルカットイン */
+    @keyframes bannerPop {
+      0% { transform: scaleY(0); opacity: 0; }
+      15% { transform: scaleY(1); opacity: 1; }
+      85% { transform: scaleY(1); opacity: 1; }
+      100% { transform: scaleY(0); opacity: 0; }
+    }
+    .animate-banner {
+      animation: bannerPop 2.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* スタンプ演出 */
+    @keyframes stampSlam {
+      0% { transform: scale(2.4) rotate(-14deg); opacity: 0; }
+      70% { transform: scale(0.95) rotate(-6deg); opacity: 1; }
+      100% { transform: scale(1) rotate(-6deg); opacity: 1; }
+    }
+    .stamp-badge {
+      animation: stampSlam 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* 盗まれた個人情報の飛行演出 */
+    .flying-stolen-item {
+      position: fixed;
+      z-index: 60;
+      pointer-events: none;
+      transition: transform 0.65s cubic-bezier(0.32, 0, 0.67, 0), opacity 0.65s ease-in;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-1 sm:p-2">
+
+  <!-- スマホ縦画面サイズ枠 -->
+  <div id="app-frame" class="relative w-full max-w-[430px] h-[94vh] max-h-[820px] bg-slate-950 border-2 border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+
+    <!-- ==================== シーン0：タイトル画面 ==================== -->
+    <section id="screen-title" class="flex-1 flex flex-col justify-between p-6 bg-gradient-to-b from-slate-900 via-slate-950 to-indigo-950">
+      <div class="flex justify-between items-center gap-2">
+        <span class="text-[11px] font-mono text-cyan-400 tracking-widest border border-cyan-500/40 px-2.5 py-1 rounded-full bg-cyan-950/40">
+          CYBER SHIELD v1.0
+        </span>
+        <div class="flex items-center space-x-2">
+          <div id="title-rank-stamp" class="hidden stamp-badge border-2 border-amber-400 bg-amber-950/80 text-amber-300 px-2.5 py-0.5 rounded-lg font-extrabold text-[11px] shadow-lg">
+            適性：A
+          </div>
+          <button id="btn-sound-toggle" onclick="toggleSound()" class="px-2.5 py-1 rounded-full bg-slate-900/90 border border-emerald-500/60 text-emerald-300 text-[11px] font-extrabold shadow hover:bg-slate-800 transition active:scale-95">
+            🔊 ON
+          </button>
+        </div>
+      </div>
+
+      <div class="text-center space-y-4 my-auto">
+        <div class="inline-block p-4 rounded-2xl bg-slate-900/80 border border-slate-700 shadow-inner">
+          <div class="text-5xl mb-2">🛡️💻👾</div>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-snug text-white">
+          サイバー・シールド<br>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 text-lg sm:text-xl font-black tracking-wider">
+            CYBER SHIELD：1988-2026
+          </span>
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-400 leading-relaxed px-2">
+          1988年のフロッピー時代から2026年のAI・ディープフェイク時代まで。<br>
+          くもりガラスの向こうで暗躍するハッカーから個人情報を守り抜け。
+        </p>
+      </div>
+
+      <div class="space-y-3 mb-2">
+        <button id="btn-start-main" onclick="startFromBeginning()" class="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-extrabold text-lg shadow-lg shadow-cyan-500/25 transition active:scale-95">
+          ゲームをはじめる
+        </button>
+
+        <!-- 2回目以降に出現する脅威レベル＆ステージ選択エリア -->
+        <div id="stage-select-box" class="hidden pt-3 border-t border-slate-800 space-y-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <label for="global-level-dropdown" class="block text-xs text-amber-300 font-bold shrink-0">
+              🔥 脅威レベル
+            </label>
+            <select id="global-level-dropdown" class="bg-slate-900 border border-amber-500/60 text-amber-300 text-xs font-bold rounded-lg px-2.5 py-1.5 focus:outline-none">
+              <option value="1">脅威 Lv.1（通常）</option>
+            </select>
+          </div>
+          <div class="space-y-2">
+            <select id="stage-dropdown" class="w-full bg-slate-900 border border-slate-700 text-slate-100 text-xs sm:text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400">
+            </select>
+            <button onclick="startSelectedStage()" class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/60 text-white font-extrabold text-sm shadow-lg transition active:scale-95">
+              選択したステージへ出撃 ▶
+            </button>
+          </div>
+        </div>
+
+        <div id="reset-area" class="hidden text-center pt-1">
+          <button onclick="resetSaveData()" class="text-[11px] text-slate-500 hover:text-slate-300 underline">
+            診断データ・履歴をリセットして初回状態に戻す
+          </button>
+        </div>
+
+        <div class="text-center pt-1 text-[10px] font-mono text-slate-500">
+          Version 1.0.0 | Released under the MIT License
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== シーン1：適性診断画面（5問） ==================== -->
+    <section id="screen-quiz" class="hidden flex-1 flex flex-col justify-between p-4 bg-gradient-to-b from-slate-900 via-slate-950 to-indigo-950 overflow-hidden">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2 shrink-0">
+        <span class="text-xs font-mono text-cyan-400 font-bold tracking-wider">APTITUDE TEST // 適性診断</span>
+        <span id="quiz-progress" class="text-xs font-mono bg-slate-900 border border-cyan-500/40 text-cyan-300 px-2.5 py-0.5 rounded-full font-bold">1 / 5</span>
+      </div>
+
+      <div class="my-auto bg-slate-900/90 border border-slate-700 rounded-2xl p-4 shadow-xl space-y-2.5">
+        <div id="quiz-category" class="text-xs font-mono text-amber-400 font-bold">Q1 // フィッシング対策</div>
+        <p id="quiz-question" class="text-sm sm:text-base font-bold text-white leading-relaxed">
+          質問文を読み込み中...
+        </p>
+      </div>
+
+      <div class="space-y-2.5 shrink-0">
+        <div class="rpg-window p-2.5">
+          <p id="quiz-narration" class="text-xs sm:text-sm text-slate-100 leading-snug">
+            ▶ あなたのセキュリティ適性を測定する。
+          </p>
+        </div>
+        <div id="quiz-choices" class="space-y-2">
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== シーン2：メインゲーム画面（上下50%:50%二分割） ==================== -->
+    <section id="screen-game" class="hidden flex-1 flex flex-col relative bg-slate-950 overflow-hidden">
+
+      <!-- 【上半分（50%）】ハッカー領域 ＋ プレイヤー端末領域 -->
+      <div class="relative h-1/2 w-full flex flex-col overflow-hidden border-b border-slate-800">
+
+        <!-- ハッカー領域（開幕・決着時のみ大きく開くオーバーレイ） -->
+        <div id="hacker-domain" class="domain-transition absolute top-0 left-0 right-0 h-[84px] z-30 bg-gradient-to-b from-purple-950 via-slate-900 to-slate-950 border-b-2 border-purple-500/80 shadow-[0_8px_25px_rgba(0,0,0,0.85)] overflow-hidden flex flex-col justify-center px-3">
+          <div id="breach-flash-overlay" class="hidden absolute inset-0 bg-red-600/35 pointer-events-none z-10 animate-pulse"></div>
+
+          <div class="relative z-20 flex items-center justify-between gap-2">
+            <!-- 左：紫色のハッカー -->
+            <div class="flex flex-col items-center shrink-0">
+              <div id="hacker-avatar" class="w-12 h-12 rounded-2xl bg-purple-900/90 border-2 border-purple-400 flex items-center justify-center shadow-lg transition-all duration-300">
+                <svg id="hacker-svg" class="w-9 h-9 text-purple-200" viewBox="0 0 64 64" fill="none">
+                  <path d="M12 28C12 16 21 8 32 8C43 8 52 16 52 28L56 48H8L12 28Z" fill="#581c87" stroke="#c084fc" stroke-width="2.5"/>
+                  <ellipse cx="32" cy="31" rx="14" ry="11" fill="#1e1b4b"/>
+                  <path d="M22 28L28 31L22 33Z" fill="#f43f5e"/>
+                  <path d="M42 28L36 31L42 33Z" fill="#f43f5e"/>
+                  <path d="M24 37Q32 43 40 37" stroke="#e879f9" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span id="hacker-laugh-badge" class="text-[9px] font-extrabold text-purple-200 bg-purple-950/90 border border-purple-500/60 px-1.5 py-0.2 rounded mt-0.5">ケタケタ！</span>
+            </div>
+
+            <!-- 中央：5個の経路ランプ表示 -->
+            <div class="flex-1 flex flex-col items-center px-1">
+              <div class="flex items-center justify-between w-full mb-1 px-0.5">
+                <div class="flex items-center space-x-1">
+                  <span id="route-node-label" class="text-[10px] font-bold text-slate-300 bg-slate-900/90 px-2 py-0.5 rounded border border-slate-700">💾 5"FDD</span>
+                  <span id="game-level-badge" class="text-[10px] font-extrabold text-amber-300 bg-amber-950/90 px-1.5 py-0.5 rounded border border-amber-500/50">Lv.1</span>
+                </div>
+                <span id="timer-display" class="text-[11px] font-mono font-extrabold text-amber-300 bg-slate-950/90 px-2 py-0.5 rounded border border-amber-500/40">30.0s</span>
+              </div>
+
+              <div id="lamp-track" class="w-full bg-slate-950/90 border border-slate-700/90 rounded-full py-2 px-2.5 flex items-center justify-between relative shadow-inner">
+                <div class="absolute left-4 right-4 h-[2px] bg-slate-800 z-0"></div>
+
+                <div id="route-lamp-1" class="lamp-node w-4 h-4 rounded-full bg-slate-800 border-2 border-slate-500 z-10 transition-all duration-300"></div>
+                <div id="route-lamp-2" class="lamp-node w-4 h-4 rounded-full bg-slate-800 border-2 border-slate-500 z-10 transition-all duration-300"></div>
+                <div id="route-lamp-3" class="lamp-node w-4 h-4 rounded-full bg-slate-800 border-2 border-slate-500 z-10 transition-all duration-300"></div>
+                <div id="route-lamp-4" class="lamp-node w-4 h-4 rounded-full bg-slate-800 border-2 border-slate-500 z-10 transition-all duration-300"></div>
+
+                <!-- 5個目ランプ（ブロック成功時はここに青い盾が重なる） -->
+                <div class="relative z-10 flex items-center justify-center">
+                  <div id="route-lamp-5" class="lamp-node w-4 h-4 rounded-full bg-slate-800 border-2 border-slate-500 transition-all duration-300"></div>
+                  <div id="lamp-shield-badge" class="hidden absolute -inset-2.5 flex items-center justify-center pointer-events-none">
+                    <div class="w-8 h-8 rounded-full bg-cyan-500/30 border-2 border-cyan-300 flex items-center justify-center shadow-[0_0_16px_rgba(34,211,238,0.95)] animate-shield-pop">
+                      <svg class="w-5 h-5 text-cyan-200 drop-shadow" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm-1.06 13.54L7.4 12l1.41-1.41 2.12 2.12 4.24-4.24 1.41 1.41-5.64 5.66z"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 右：MY端末アイコン -->
+            <div class="flex flex-col items-center shrink-0">
+              <div id="target-device-box" class="w-12 h-12 rounded-2xl bg-slate-900 border-2 border-cyan-500/80 flex items-center justify-center text-2xl shadow-lg transition-all duration-300">
+                <span id="target-device-icon">🖥️</span>
+              </div>
+              <span class="text-[9px] text-cyan-300 font-bold mt-0.5">MY端末</span>
+            </div>
+          </div>
+
+          <!-- くもりガラスオーバーレイ -->
+          <div id="frosted-overlay" class="frosted-glass absolute inset-0 z-30 flex items-center justify-center">
+            <div class="w-full h-full border-b border-white/15 bg-gradient-to-b from-white/10 to-transparent"></div>
+          </div>
+        </div>
+
+        <!-- プレイヤー端末表示領域（上部84pxの下に配置） -->
+        <div id="player-domain" class="flex-1 pt-[88px] pb-1.5 px-2.5 flex items-center justify-center bg-slate-900/40 overflow-hidden">
+
+          <!-- 外観A：1988年 PC-8801風 横置きデスクトップ＋4:3CRT＋5インチFDD -->
+          <div id="hardware-pc88" class="hidden w-full h-full flex flex-col justify-center items-center max-w-[300px] mx-auto">
+            <div class="w-[82%] flex-1 min-h-0 max-h-[195px] bg-[#e5dec9] rounded-t-xl rounded-b-sm p-2 pb-1 border-2 border-[#b8af96] shadow-xl flex flex-col">
+              <div id="pc88-crt-screen" class="crt-screen w-full flex-1 rounded-lg border-2 border-slate-800 p-2 flex flex-col justify-between shadow-inner">
+                <div class="flex justify-between text-[8px] opacity-80 border-b border-emerald-800/60 pb-0.5">
+                  <span>NEC PC-8801mkII SR // N88-BASIC</span>
+                  <span>1988/10/24</span>
+                </div>
+                <div id="pc88-monitor-content" class="my-auto py-0.5 text-[10px] leading-snug">
+                </div>
+                <div class="flex justify-between items-center text-[8px] opacity-80 border-t border-emerald-800/60 pt-0.5">
+                  <span id="pc88-status-text">STATUS: READY</span>
+                  <span class="pc88-rank-label font-bold">適性: A</span>
+                </div>
+              </div>
+              <div class="flex justify-between items-center px-1 pt-0.5 text-[7px] font-bold text-slate-600 shrink-0">
+                <span>PC-8801 DISPLAY</span>
+                <span class="flex items-center space-x-1"><span>POWER</span><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span></span>
+              </div>
+            </div>
+            <div class="w-full h-9 bg-[#dcd4bc] rounded-md border-2 border-[#b0a68c] px-2.5 py-1 flex items-center justify-between shadow-md mt-0.5 shrink-0">
+              <span class="text-[7px] font-extrabold text-slate-700 bg-[#cbc2a8] px-1.5 py-0.5 rounded border border-[#a89e84]">PC-8801 5"FDD×2</span>
+              <div class="flex items-center space-x-1.5">
+                <div class="w-16 h-5 bg-slate-900 rounded-xs border border-slate-700 p-0.5 flex flex-col justify-between">
+                  <div class="flex justify-between items-center"><span class="text-[5px] text-slate-400">DRIVE 1</span><span class="w-1.5 h-0.5 bg-red-500 animate-pulse"></span></div>
+                  <div class="w-full h-1 bg-slate-700 rounded-full relative flex items-center justify-center"><div class="w-2.5 h-1.5 bg-slate-400 rounded-xs"></div></div>
+                </div>
+                <div class="w-16 h-5 bg-slate-900 rounded-xs border border-slate-700 p-0.5 flex flex-col justify-between">
+                  <div class="flex justify-between items-center"><span class="text-[5px] text-slate-400">DRIVE 2</span><span class="w-1.5 h-0.5 bg-slate-700"></span></div>
+                  <div class="w-full h-1 bg-slate-700 rounded-full relative flex items-center justify-center"><div class="w-2.5 h-1.5 bg-slate-400 rounded-xs"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 外観B：2024年 現代スマートフォン（上半分クローズアップ） -->
+          <div id="hardware-smartphone" class="hidden w-full h-full max-w-[320px] mx-auto bg-slate-800 rounded-t-[2rem] rounded-b-none p-2.5 pb-0 border-x-[4px] border-t-[4px] border-b-0 border-slate-500 shadow-2xl flex flex-col relative">
+            <div class="w-20 h-3.5 bg-slate-950 rounded-b-xl mx-auto mb-1 flex items-center justify-center space-x-1.5 shrink-0">
+              <span class="w-6 h-1 bg-slate-800 rounded-full"></span>
+              <span class="w-1.5 h-1.5 bg-indigo-950 rounded-full border border-slate-700"></span>
+            </div>
+            <div id="phone-inner-screen" class="flex-1 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 rounded-t-[1.35rem] rounded-b-none border-x border-t border-slate-700/80 p-2.5 flex flex-col justify-between overflow-hidden">
+              <div class="flex justify-between items-center text-[10px] text-slate-300 font-semibold px-1">
+                <span>14:32</span>
+                <div class="flex items-center space-x-1.5">
+                  <span class="text-[9px] text-cyan-400 font-bold">5G</span>
+                  <div class="flex items-end space-x-0.5 h-2.5">
+                    <span class="w-0.5 h-1 bg-white"></span>
+                    <span class="w-0.5 h-1.5 bg-white"></span>
+                    <span class="w-0.5 h-2 bg-white"></span>
+                    <span class="w-0.5 h-2.5 bg-red-500 animate-pulse"></span>
+                  </div>
+                  <span class="w-4 h-2 border border-slate-400 rounded-xs inline-block p-0.2"><span class="block w-2.5 h-full bg-emerald-400"></span></span>
+                </div>
+              </div>
+              <div id="phone-monitor-content" class="my-auto py-1 text-[11px] leading-snug">
+              </div>
+              <div class="flex justify-between items-center text-[9px] text-slate-400 border-t border-slate-700/80 pt-1">
+                <span id="phone-status-text">STATUS: ONLINE</span>
+                <span class="phone-rank-label font-bold text-cyan-400">適性: A</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 外観C：1999年 Windows 98風 CRTデスクトップ＋ダイヤルアップモデム -->
+          <div id="hardware-win98" class="hidden w-full h-full flex flex-col justify-center items-center max-w-[305px] mx-auto">
+            <div class="w-[86%] flex-1 min-h-0 max-h-[195px] bg-[#d4d0c8] rounded-t-lg rounded-b-sm p-2 pb-1 border-2 border-[#808080] shadow-xl flex flex-col">
+              <div id="win98-crt-screen" class="w-full flex-1 bg-[#008080] border-2 border-[#404040] flex flex-col justify-between overflow-hidden shadow-inner">
+                <div class="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white px-1.5 py-0.5 flex justify-between items-center text-[9px] font-bold">
+                  <span class="flex items-center space-x-1"><span>📧</span><span>Outlook Express - 受信トレイ</span></span>
+                  <span class="bg-[#d4d0c8] text-black px-1 text-[8px] border border-white">×</span>
+                </div>
+                <div id="win98-monitor-content" class="my-auto p-1.5 text-[10px] leading-tight text-slate-900">
+                </div>
+                <div class="bg-[#d4d0c8] border-t border-white px-1 py-0.5 flex justify-between items-center text-[8px] text-black font-bold">
+                  <span class="px-1 bg-[#d4d0c8] border border-slate-600 shadow-xs">⊞ スタート</span>
+                  <span id="win98-status-text" class="text-[8px] font-mono text-slate-700 truncate max-w-[110px]">56k MODEM</span>
+                  <span class="win98-rank-label text-[#000080]">適性: A</span>
+                </div>
+              </div>
+              <div class="flex justify-between items-center px-1 pt-0.5 text-[7px] font-bold text-slate-700 shrink-0">
+                <span>17" CRT MONITOR</span>
+                <span class="w-2 h-1.5 bg-emerald-500 rounded-xs"></span>
+              </div>
+            </div>
+            <div class="w-full h-9 bg-[#c8c4bc] rounded-md border-2 border-[#808080] px-2.5 py-1 flex items-center justify-between shadow-md mt-0.5 shrink-0">
+              <span class="text-[7px] font-black text-slate-800 bg-[#b0aca4] px-1.5 py-0.5 rounded border border-slate-500">56K FAX MODEM</span>
+              <div class="flex items-center space-x-1.5 text-[7px] font-mono text-slate-800">
+                <span>PW</span><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>TX/RX</span><span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
+                <span>OH</span><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 外観D：2010年 初期ノートPC（シルバーベゼル＋Wi-Fiステータス） -->
+          <div id="hardware-laptop2010" class="hidden w-full h-full flex flex-col justify-center items-center max-w-[315px] mx-auto">
+            <div class="w-[90%] flex-1 min-h-0 max-h-[200px] bg-slate-300 rounded-t-xl p-2 pb-1.5 border-2 border-slate-400 shadow-xl flex flex-col">
+              <div class="w-1.5 h-1.5 rounded-full bg-slate-700 mx-auto mb-1"></div>
+              <div id="laptop-inner-screen" class="w-full flex-1 bg-gradient-to-b from-sky-900 to-slate-900 rounded border border-slate-600 flex flex-col justify-between overflow-hidden">
+                <div class="bg-slate-950/80 text-slate-200 px-2 py-0.5 flex justify-between items-center text-[9px] border-b border-slate-700">
+                  <span>🌐 Browser v8.0</span>
+                  <span class="text-amber-300 font-bold">📶 Free_Cafe_WiFi (鍵なし)</span>
+                </div>
+                <div id="laptop-monitor-content" class="my-auto p-2 text-[10px] leading-snug text-white">
+                </div>
+                <div class="bg-slate-950/90 px-2 py-0.5 flex justify-between items-center text-[8px] text-slate-400 border-t border-slate-800">
+                  <span id="laptop-status-text">WIFI: UNENCRYPTED</span>
+                  <span class="laptop-rank-label text-sky-400 font-bold">適性: A</span>
+                </div>
+              </div>
+            </div>
+            <div class="w-[98%] h-4 bg-gradient-to-b from-slate-200 to-slate-400 rounded-b-xl border-x-2 border-b-2 border-slate-500 shadow-md flex items-center justify-center shrink-0">
+              <div class="w-10 h-1 bg-slate-500 rounded-full"></div>
+            </div>
+          </div>
+
+          <!-- 外観E：2026年 AI・ディープフェイク対応ホログラム端末 -->
+          <div id="hardware-ai2026" class="hidden w-full h-full max-w-[320px] mx-auto bg-slate-900/95 rounded-2xl p-2 border-2 border-fuchsia-500/70 shadow-[0_0_25px_rgba(217,70,239,0.25)] flex flex-col justify-between">
+            <div class="flex justify-between items-center text-[9px] font-mono text-fuchsia-300 border-b border-fuchsia-500/30 pb-1 px-1">
+              <span class="flex items-center space-x-1"><span class="w-2 h-2 rounded-full bg-fuchsia-400 animate-pulse"></span><span>NEURAL-OS 2026</span></span>
+              <span id="ai-status-text" class="text-cyan-300">DEEPFAKE GUARD: ACTIVE</span>
+              <span class="ai-rank-label font-bold text-amber-300">適性: A</span>
+            </div>
+            <div id="ai-monitor-content" class="my-auto py-1 px-1 text-[11px] leading-snug">
+            </div>
+            <div class="flex items-center justify-between text-[8px] font-mono text-slate-400 border-t border-fuchsia-500/30 pt-1 px-1">
+              <span>VOICE-PRINT: ANALYZING...</span>
+              <span class="text-fuchsia-400">BIOMETRIC LINK</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 【下半分（50%）】個人情報ライフ ＋ テキスト欄 ＋ 選択肢 -->
+      <div class="h-1/2 w-full flex flex-col justify-between p-2.5 bg-slate-950 overflow-hidden">
+
+        <!-- 個人情報ライフスロット（2段折り返し可変） -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl px-2 py-1 flex flex-wrap items-center gap-1 shrink-0">
+          <span class="text-[10px] text-cyan-400 font-bold shrink-0 mr-0.5">🛡️個人情報:</span>
+          <div id="life-slots-container" class="flex flex-wrap items-center gap-1">
+          </div>
+        </div>
+
+        <!-- RPG風ナレーションウィンドウ -->
+        <div class="rpg-window p-2.5 my-1 shrink-0">
+          <p id="game-narration" class="text-xs sm:text-sm text-slate-100 leading-snug">
+            ▶ 状況を解析中...
+          </p>
+        </div>
+
+        <!-- コマンド選択肢（1択2段・高さ固定） -->
+        <div id="game-choices" class="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-0.5">
+        </div>
+
+      </div>
+
+      <!-- 白帯・太字黒文字・中段中寄せタイトルカットイン -->
+      <div id="stage-banner-overlay" class="hidden pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-black/55">
+        <div id="stage-banner-box" class="w-full bg-white text-black py-5 px-4 shadow-2xl border-y-4 border-slate-900 text-center">
+          <div id="banner-era" class="text-xs sm:text-sm font-extrabold tracking-widest mb-1">1988年・パソコン黎明期</div>
+          <div id="banner-title" class="text-xl sm:text-2xl font-black tracking-tight">「甘い誘惑のフロッピー」</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== シーン3：リザルト画面 ==================== -->
+    <section id="screen-result" class="hidden flex-1 flex flex-col justify-between p-5 bg-gradient-to-b from-slate-900 to-slate-950 overflow-y-auto">
+      <div class="text-center space-y-1.5 pt-1">
+        <span id="result-stage-label" class="text-xs font-mono text-slate-400">STAGE 1 RESULT</span>
+        <h2 id="result-heading" class="text-2xl sm:text-3xl font-black tracking-wide text-cyan-400">
+          STAGE CLEAR!
+        </h2>
+      </div>
+
+      <!-- 個人情報ステータス一覧 -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 space-y-2 my-2">
+        <div id="result-life-header" class="text-xs font-bold text-slate-300 border-b border-slate-800 pb-1">
+          個人情報防衛ステータス
+        </div>
+        <div id="result-life-summary" class="space-y-1.5 max-h-[165px] overflow-y-auto pr-0.5">
+        </div>
+      </div>
+
+      <!-- パターンA：途中ステージ（1〜4）用のポイント解説パネル -->
+      <div id="result-mid-point-box" class="bg-slate-900/95 border border-cyan-500/40 rounded-2xl p-3.5 space-y-1.5 shadow-inner my-auto">
+        <div class="flex items-center space-x-1.5 text-cyan-400 font-bold text-xs">
+          <span>💡</span>
+          <span>この時代の防衛ポイント解説</span>
+        </div>
+        <p id="result-mid-point-text" class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+          解説テキスト
+        </p>
+      </div>
+
+      <!-- パターンB：オールクリア（Stage 5クリア）または単体プレイ時の切替エリア -->
+      <div id="result-final-area" class="hidden my-auto space-y-2">
+        <!-- スコア表示ボックス（初期表示） -->
+        <div id="result-final-score-box" class="bg-slate-900/95 border border-amber-400/50 rounded-2xl p-4 text-center space-y-1.5 shadow-lg">
+          <div id="result-score-caption" class="text-xs font-bold text-amber-300 tracking-wider">ALL STAGES TOTAL SCORE // 総合防衛評価</div>
+          <div class="text-4xl sm:text-5xl font-black text-white">
+            <span id="result-score-value">100</span><span class="text-lg font-normal text-slate-400 ml-1">/ 100 点</span>
+          </div>
+          <div id="result-bonus-note" class="text-[11px] text-cyan-300 font-semibold">全時代の個人情報保持率から算出</div>
+        </div>
+
+        <!-- オールクリア時のポイント解説ボックス（ボタンを押すとスコアと入れ替わる） -->
+        <div id="result-final-point-box" class="hidden bg-slate-900/95 border border-cyan-500/40 rounded-2xl p-3.5 space-y-1.5 shadow-inner">
+          <div class="flex items-center space-x-1.5 text-cyan-400 font-bold text-xs">
+            <span>💡</span>
+            <span>この時代の防衛ポイント解説</span>
+          </div>
+          <p id="result-final-point-text" class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+            解説テキスト
+          </p>
+        </div>
+
+        <!-- スコアとポイント解説を切り替えるボタン -->
+        <button id="btn-toggle-point" onclick="toggleFinalResultView()" class="w-full py-2.5 rounded-xl bg-cyan-950/90 hover:bg-cyan-900 border border-cyan-500/60 text-cyan-200 font-bold text-xs sm:text-sm transition active:scale-95">
+          💡 ポイント解説を読む
+        </button>
+      </div>
+
+      <!-- アクションボタン -->
+      <div class="space-y-2 pt-2">
+        <button id="btn-next-stage" onclick="goToNextStage()" class="hidden w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-extrabold text-sm sm:text-base shadow-lg shadow-emerald-500/25 transition active:scale-95">
+          次のステージへ進む ▶
+        </button>
+        <button id="btn-next-campaign-level" onclick="startNextCampaignLevel()" class="hidden w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-extrabold text-sm sm:text-base shadow-lg shadow-amber-500/30 transition active:scale-95">
+          🔥 脅威 Lv.2 に挑戦する ▶
+        </button>
+        <button onclick="retryCurrentStage()" class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow transition active:scale-95">
+          このステージをもう一度プレイ
+        </button>
+        <button onclick="returnToTitle()" class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-sm transition active:scale-95">
+          タイトルへ戻る
+        </button>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    /**
+     * 適性診断クイズデータ（5問）
+     */
+    const QUIZ_QUESTIONS = [
+      {
+        category: 'Q1 // フィッシング対策',
+        question: '見知らぬ番号から「荷物の不在通知」のSMSが届いた。URLが記載されている。どうする？',
+        options: [
+          { text: 'URLをタップして配送状況を確認する', score: 0 },
+          { text: 'メッセージを削除し、公式アプリやサイトから直接調べる', score: 1 }
+        ]
+      },
+      {
+        category: 'Q2 // パスワード管理',
+        question: '新しくネットサービスに会員登録をする。パスワードの設定はどうする？',
+        options: [
+          { text: 'いつも使っている覚えやすい英数字を入力する', score: 0 },
+          { text: '他のサイトとは全く違う、ランダムな文字列を生成する', score: 1 }
+        ]
+      },
+      {
+        category: 'Q3 // ネットワーク感覚',
+        question: 'カフェで作業中、鍵マークのついていない無料の公衆Wi-Fiを見つけた。',
+        options: [
+          { text: '通信量を節約するため、迷わず接続して作業する', score: 0 },
+          { text: '接続を控え、スマホのモバイル通信やVPNを使う', score: 1 }
+        ]
+      },
+      {
+        category: 'Q4 // インシデント初動',
+        question: 'PCの動作が急に重くなり、見知らぬ通信が発生している気配がある。どう動く？',
+        options: [
+          { text: 'とりあえず電源ボタンを長押しして再起動する', score: 0 },
+          { text: 'タスクマネージャやパケット監視で不審なプロセスと通信先を特定する', score: 1 }
+        ]
+      },
+      {
+        category: 'Q5 // 最新脅威への姿勢',
+        question: 'AIを悪用した最新のサイバー攻撃のニュースを見た。あなたの考えに近いのは？',
+        options: [
+          { text: '怖いので、有名なセキュリティソフトを入れて様子を見る', score: 0 },
+          { text: '攻撃手口をログで分析し、防御側の検知ルールやAIモデルも更新する', score: 1 }
+        ]
+      }
+    ];
+
+    /**
+     * ステージシナリオデータ（全5ステージ：1988年〜2026年）
+     */
+    const STAGES = {
+      1: {
+        id: 1,
+        dropdownLabel: 'Stage 1: 1988年 黎明期「甘い誘惑のフロッピー」',
+        era: '1988年・パソコン黎明期',
+        title: '「甘い誘惑のフロッピー」',
+        deviceIcon: '🖥️',
+        routeLabel: '💾 5"FDD',
+        timeLimit: 30,
+        pointSummary: '1980年代後半はネットワーク未接続のため、ウイルス感染は「フロッピーディスクなどの物理媒体」の受け渡しで広がりました。ライトプロテクト（書き込み禁止）で媒体への感染を防ぎ、異変時は即座に主電源を切ってメモリ上のウイルスを消去することが鉄則でした。',
+        lives: [
+          { id: 'prog', icon: '💾', name: '自作ゲームプログラム' },
+          { id: 'diary', icon: '📓', name: '日記データ' }
+        ],
+        turns: {
+          start: {
+            monitorHtml: `
+              <div class="border border-current/60 p-2 rounded space-y-1">
+                <div class="font-bold">A:\\> DIR</div>
+                <div>友人から借りた最新ゲーム『スペース・ウォーズ』のコピーディスクを入手した。</div>
+                <div class="text-amber-300 pt-0.5">ドライブに挿入して起動しますか？</div>
+              </div>
+            `,
+            statusText: 'DISK INSERT READY',
+            narration: '▶ 友人からの善意の贈り物だ。だが、そのディスクがどこを経由してきたかは誰にもわからない。赤い光がドライブの入り口に近づいている。最初の行動を選べ。',
+            litLamps: 1,
+            choices: [
+              { text: 'そのままドライブに入れて起動する', proOnly: false, minLv: 1, next: 'fail_direct' },
+              { text: 'ディスクの「書き込み禁止」ツメをスライドする', proOnly: false, minLv: 1, maxLv: 1, next: 'turn2_normal' },
+              { text: '媒体裏面のライトプロテクトノッチを遮蔽して保護する', proOnly: false, minLv: 2, maxLv: 2, next: 'turn2_normal' },
+              { text: 'まずは自作プログラムと日記のバックアップフロッピーを作る', proOnly: false, minLv: 3, next: 'turn2_normal' },
+              { text: '磁石をディスクに近づけて磁気エラーを修復する', proOnly: false, minLv: 2, next: 'fail_direct' },
+              { text: '最新セキュリティソフトのクラウドスキャンを実行する', proOnly: false, minLv: 3, next: 'fail_direct' },
+              { text: '[プロ専用] TCP/IPポート21番の外部通信を遮断する', proOnly: true, minLv: 2, next: 'fail_direct' },
+              { text: '[プロ専用] バイナリエディタでブート領域を直接覗く', proOnly: true, minLv: 1, maxLv: 1, next: 'turn2_pro', revealsGlass: true },
+              { text: '[プロ専用] セクタダンプツールでIPL先頭命令を逆アセンブルする', proOnly: true, minLv: 2, next: 'turn2_pro', revealsGlass: true }
+            ]
+          },
+          turn2_normal: {
+            monitorHtml: `
+              <div class="border border-red-500 bg-red-950/40 text-red-400 p-2 rounded space-y-1 animate-pulse">
+                <div class="font-bold">!! WARNING: BOOT SECTOR INFECTED !!</div>
+                <div>画面の文字がガガガッと崩れ、下へ落ち始めた！</div>
+                <div class="text-xs">MEMORY RESIDENT VIRUS DETECTED...</div>
+              </div>
+            `,
+            statusText: 'MEMORY CORRUPTED!',
+            glitch: true,
+            narration: '▶ 書き込みは防いだ。だが起動領域のウイルスがメモリに常駐したようだ！このままでは「自作プログラム」が破壊される。次の手を打て！',
+            litLamps: 3,
+            choices: [
+              { text: 'すぐにマイコンの主電源スイッチを切る', proOnly: false, minLv: 1, maxLv: 1, next: 'win_normal' },
+              { text: 'コールドブート（電源オフ）でRAM上の常駐コードを揮発させる', proOnly: false, minLv: 2, maxLv: 2, next: 'win_normal' },
+              { text: '電源ケーブルを抜き、クリーンなシステムディスクから起動する', proOnly: false, minLv: 3, next: 'win_normal' },
+              { text: '画面が直るまでキーボードを連打する', proOnly: false, minLv: 1, next: 'fail_panic' },
+              { text: 'システムディスクごと全ドライブをフォーマットする', proOnly: false, minLv: 2, next: 'fail_direct' },
+              { text: 'CTRL+ALT+DELでソフトリセット（再起動）をかける', proOnly: false, minLv: 3, next: 'fail_panic' },
+              { text: '[プロ専用] クラウドバックアップへデータを自動退避させる', proOnly: true, minLv: 2, next: 'fail_panic' }
+            ]
+          },
+          turn2_pro: {
+            monitorHtml: `
+              <div class="border border-cyan-400 bg-cyan-950/30 text-cyan-300 p-2 rounded space-y-1">
+                <div class="font-bold">[HEX DUMP: 0x0000 - BOOT]</div>
+                <div class="font-mono text-[9px]">EB 3C 90 [4B 45 54 41 4B 45 54 41]...</div>
+                <div>先頭領域に不正な常駐コードを発見！起動前に検知した。</div>
+              </div>
+            `,
+            statusText: 'HEX ANALYZED',
+            narration: '▶ ガラスの向こうの罠を見抜いた。ディスクの先頭領域に「ケタケタ…」という不正コードが仕込まれている。どう処理する？',
+            litLamps: 2,
+            choices: [
+              { text: 'ディスクをドライブから抜き、物理的に廃棄する', proOnly: false, minLv: 1, maxLv: 1, next: 'win_normal' },
+              { text: 'イジェクトレバーで媒体を排出し、読み込まずに破棄する', proOnly: false, minLv: 2, next: 'win_normal' },
+              { text: 'そのまま実行してメモリ上の挙動を観察する', proOnly: false, minLv: 2, next: 'fail_direct' },
+              { text: '[プロ専用] OSの自動復元機能でブート領域をロールバックする', proOnly: true, minLv: 2, next: 'fail_panic' },
+              { text: '[プロ専用] セキュアブートの署名検証を強制有効化する', proOnly: true, minLv: 3, next: 'fail_panic' },
+              { text: '[プロ専用] 不正ブートコードを正常コードへ書き換え無害化', proOnly: true, minLv: 1, maxLv: 1, next: 'win_pro' },
+              { text: '[プロ専用] SYSコマンドで正規のブートレコードを上書き修復する', proOnly: true, minLv: 2, next: 'win_pro' }
+            ]
+          }
+        },
+        outcomes: {
+          win_normal: {
+            success: true,
+            lostLives: [],
+            monitorHtml: `
+              <div class="border-2 border-cyan-400 bg-cyan-950/80 text-cyan-200 p-3 rounded-lg text-center space-y-1 shadow-[0_0_20px_rgba(34,211,238,0.4)]">
+                <div class="flex items-center justify-center space-x-1.5 text-cyan-300">
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm-1.06 13.54L7.4 12l1.41-1.41 2.12 2.12 4.24-4.24 1.41 1.41-5.64 5.66z"/>
+                  </svg>
+                  <span class="text-xl font-black tracking-widest text-white">SAFE</span>
+                </div>
+                <div class="text-[10px] text-cyan-300 font-bold">THREAT BLOCKED // 侵入完全阻止</div>
+              </div>
+            `,
+            narration: '▶ 侵入阻止に成功！物理的な遮断こそがこの時代最強の盾だ。ハッカーは悔し泣きして撤退し、あなたのデータはすべて守られた！'
+          },
+          win_pro: {
+            success: true,
+            lostLives: [],
+            monitorHtml: `
+              <div class="border-2 border-cyan-400 bg-cyan-950/80 text-cyan-200 p-3 rounded-lg text-center space-y-1 shadow-[0_0_20px_rgba(34,211,238,0.4)]">
+                <div class="flex items-center justify-center space-x-1.5 text-cyan-300">
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm-1.06 13.54L7.4 12l1.41-1.41 2.12 2.12 4.24-4.24 1.41 1.41-5.64 5.66z"/>
+                  </svg>
+                  <span class="text-xl font-black tracking-widest text-white">SAFE</span>
+                </div>
+                <div class="text-[10px] text-amber-300 font-bold">PRO NEUTRALIZED // 完璧な解析迎撃</div>
+              </div>
+            `,
+            narration: '▶ 見事な解析技術だ！ブートセクタのウイルスコードのみを書き換えて無害化し、ハッカーの企みを完全に打ち砕いた！'
+          },
+          fail_direct: {
+            success: false,
+            lostLives: ['prog', 'diary'],
+            monitorHtml: `
+              <div class="border border-red-500 bg-red-950/60 text-red-400 p-2 rounded text-center space-y-1">
+                <div class="font-bold">FATAL ERROR: DISK DESTROYED</div>
+                <div>全セクタが書き換えられ、起動不能になった。</div>
+              </div>
+            `,
+            narration: '▶ 防御失敗。ウイルスはハードディスクの領域を瞬時に書き換え、あなたのすべてのデータを消去した……。'
+          },
+          fail_panic: {
+            success: false,
+            lostLives: ['prog'],
+            monitorHtml: `
+              <div class="border border-red-500 bg-red-950/60 text-red-400 p-2 rounded text-center space-y-1">
+                <div class="font-bold">SYSTEM HALTED</div>
+                <div>自作プログラムの領域が完全に破壊された！</div>
+              </div>
+            `,
+            narration: '▶ 対処が遅れ、半年かけて作った「自作プログラム」が消去された。……だが、なんとか「日記データ」だけは守り抜いた。'
+          }
+        }
+      },
+
+      2: {
+        id: 2,
+        dropdownLabel: 'Stage 2: 1999年 ネット普及期「ラブレターの罠」',
+        era: '1999年・インターネット普及期',
+        title: '「ラブレターの罠」',
+        deviceIcon: '💻',
+        routeLabel: '☎️ 56kモデム',
+        timeLimit: 28,
+        pointSummary: '1990年代末〜2000年代初頭は、一般家庭にメールが普及したことで「知人からのメールを装う大量拡散型ワーム（ILOVEYOU型）」が猛威を振るいました。二重拡張子（.txt.vbs）を見抜いて添付を開かないこと、そして定義ファイルの更新が重要です。',
+        lives: [
+          { id: 'addr', icon: '📒', name: 'アドレス帳連絡先' },
+          { id: 'isp', icon: '🌐', name: 'プロバイダID' },
+          { id: 'mail', icon: '✉️', name: 'プライベートメール' }
+        ],
+        turns: {
+          start: {
+            monitorHtml: `
+              <div class="bg-white border border-slate-500 p-1.5 rounded-xs space-y-1 shadow-xs">
+                <div class="text-[9px] text-slate-600 border-b border-slate-300 pb-0.5">差出人: 大学の友人 / 件名: <b>I LOVE YOU</b></div>
+                <div class="text-[10px] text-black">私からの秘密のラブレターを読んでください！</div>
+                <div class="bg-slate-100 border border-slate-400 px-1.5 py-0.5 text-[9px] font-mono text-blue-800">
+                  📎 LOVE-LETTER-FOR-YOU.TXT.vbs
+                </div>
+              </div>
+            `,
+            statusText: '1 NEW MAIL',
+            narration: '▶ 友人から「I LOVE YOU」という甘い件名のメールが届いた。だが添付ファイル名の末尾に「.vbs」という不審な拡張子が隠れている！どうする？',
+            litLamps: 1,
+            choices: [
+              { text: 'ドキドキしながら添付ファイルを開いて中身を見る', proOnly: false, minLv: 1, next: 'fail_worm' },
+              { text: '二重拡張子(.vbs)を怪しみ、添付を開かずメールを削除する', proOnly: false, minLv: 1, maxLv: 1, next: 'turn2_normal' },
+              { text: '実行スクリプト(.vbs)の添付を遮断し、友人に電話で真偽を確かめる', proOnly: false, minLv: 2, maxLv: 2, next: 'turn2_normal' },
+              { text: 'メーラーの自動プレビューを無効化した上で不審メールを完全破棄', proOnly: false, minLv: 3, next: 'turn2_normal' },
+              { text: '添付ファイルをデスクトップに保存してからダブルクリックする', proOnly: false, minLv: 2, next: 'fail_worm' },
+              { text: '友人に確認するため同じ添付ファイルを転送して送り返す', proOnly: false, minLv: 3, next: 'fail_worm' },
+              { text: '[プロ専用] 二段階認証アプリでメールの署名を検証する', proOnly: true, minLv: 2, next: 'fail_worm' },
+              { text: '[プロ専用] 拡張子表示をオンにしVBSスクリプトの危険性を検知', proOnly: true, minLv: 1, maxLv: 1, next: 'turn2_pro', revealsGlass: true },
+              { text: '[プロ専用] メールソース内のVBScript不正呼び出し構文を特定', proOnly: true, minLv: 2, next: 'turn2_pro', revealsGlass: true }
+            ]
+          },
+          turn2_normal: {
+            monitorHtml: `
+              <div class="bg-blue-900 text-white p-2 rounded-xs font-mono text-[9px] space-y-1 border border-white">
+                <div class="bg-slate-200 text-blue-900 font-bold px-1">Windows Script Host 警告</div>
+                <div>アドレス帳の全宛先へ自己複製メールを送信しようとしています！</div>
+                <div class="text-amber-300">モデム通信ランプ激しく点滅中...</div>
+              </div>
+            `,
+            statusText: 'WORM SPREADING!',
+            glitch: true,
+            narration: '▶ メールは削除したが、プレビュー機能を経由してワームが起動してしまった！アドレス帳の全員へ勝手にウイルスメールをばら撒こうとしている！',
+            litLamps: 3,
+            choices: [
+              { text: 'モデムの電話線を抜いて通信を断ち、ウイルス対策ソフトを更新', proOnly: false, minLv: 1, maxLv: 1, next: 'win_normal' },
+              { text: 'ダイヤルアップ接続を即時切断し、最新の駆除ツールでスキャンする', proOnly: false, minLv: 2, maxLv: 2, next: 'win_normal' },
+              { text: 'モジュラージャックを物理抜去し、定義ファイルをフロッピー経由で適用', proOnly: false, minLv: 3, next: 'win_normal' },
+              { text: '友人全員に「今のメールは嘘です」と手動で返信し続ける', proOnly: false, minLv: 1, next: 'fail_spread' },
+              { text: 'Outlookの画面を最小化して送信が終わるのを待つ', proOnly: false, minLv: 2, next: 'fail_spread' },
+              { text: '受信トレイのメールをすべて未読に戻して様子を見る', proOnly: false, minLv: 3, next: 'fail_spread' },
+              { text: '[プロ専用] AI自動隔離システムでゼロデイ挙動をブロックする', proOnly: true, minLv: 2, next: 'fail_spread' }
+            ]
+          },
+          turn2_pro: {
+            monitorHtml: `
+              <div class="bg-slate-900 text-emerald-400 p-1.5 rounded-xs font-mono text-[9px] space-y-0.5 border border-emerald-500">
+                <div>[SCRIPT ANALYSIS: WSH/VBS]</div>
+                <div>Target: Outlook AddressBook & Registry</div>
+                <div class="text-amber-300">悪意あるVBSワームの自動拡散ルーチンを特定！</div>
+              </div>
+            `,
+            statusText: 'VBS ANALYZED',
+            narration: '▶ スクリプトの中身を解析し、アドレス帳を乗っ取って自己増殖するワームの正体を見抜いた！どう迎え撃つ？',
+            litLamps: 2,
+            choices: [
+              { text: '電話回線を切断し、最新のパターンファイルで駆除する', proOnly: false, minLv: 1, maxLv: 1, next: 'win_normal' },
+              { text: 'モデム電源を落とし、ウイルス定義ファイルを最新化して駆除', proOnly: false, minLv: 2, next: 'win_normal' },
+              { text: 'アドレス帳の名前をすべてひらがかに書き換える', proOnly: false, minLv: 2, next: 'fail_spread' },
+              { text: '[プロ専用] Windows Script Host(WSH)を無効化しプロセス強制終了', proOnly: true, minLv: 1, maxLv: 1, next: 'win_pro' },
+              { text: '[プロ専用] .vbsの関連付けをメモ帳へ変更しwscript.exeを停止する', proOnly: true, minLv: 2, next: 'win_pro' },
+              { text: '[プロ専用] SMTPサーバーのポート443を閉鎖してメールを止める', proOnly: true, minLv: 2, next: 'fail_spread' },
+              { text: '[プロ専用] VBSファイルを暗号化してアドレス帳へ再配布する', proOnly: true, minLv: 3, next: 'fail_worm' }
+            ]
+          }
+        },
+        outcomes: {
+          win_normal: {
+            success: true,
+            lostLives: [],
+            monitorHtml: `
+              <div class="border-2 border-cyan-500 bg-slate-900 text-cyan-200 p-2.5 rounded text-center space-y-1">
+                <div class="text-lg font-black text-white">🛡️ SAFE</div>
+                <div class="text-[9px] text-cyan-300 font-bold">WORM QUARANTINED // 拡散完全阻止</div>
+              </div>
+            `,
+            narration: '▶ 侵入阻止に成功！電話線の物理切断と最新のパターンファイル更新により、ワームの増殖を完全に食い止めた！'
+          },
+          win_pro: {
+            success: true,
+            lostLives: [],
+            monitorHtml: `
+              <div class="border-2 border-cyan-500 bg-slate-900 text-cyan-200 p-2.5 rounded text-center space-y-1">
+                <div class="text-lg font-black text-white">🛡️ SAFE</div>
+                <div class="text-[9px] text-amber-300 font-bold">WSH DISABLED // スクリプト完全無力化</div>
+              </div>
+            `,
+            narration: '▶ 見事な対処だ！WSHの実行権限を即座に封じたことで、ワームは1通も送信されることなく無力化された！'
+          },
+          fail_worm: {
+            success: false,
+            lostLives: ['addr', 'isp', 'mail'],
+            monitorHtml: `
+              <div class="bg-red-950 border border-red-500 text-red-300 p-2 rounded text-center space-y-1">
+                <div class="font-bold">MASS MAILER INFECTED</div>
+                <div class="text-[9px]">アドレス帳全員へウイルスを送信し信用を失った！</div>
+              </div>
+            `,
+            narration: '▶ 防御失敗。甘い誘惑に負けてスクリプトを実行してしまい、すべての個人情報とアドレス帳が奪われた……！'
+          },
+          fail_spread: {
+            success: false,
+            lostLives: ['addr', 'mail'],
+            monitorHtml: `
+              <div class="bg-red-950 border border-red-500 text-red-300 p-2 rounded text-center space-y-1">
+                <div class="font-bold">ADDRESS BOOK LEAKED</div>
+                <div class="text-[9px]">アドレス帳とメールデータが外部へ流出した！</div>
+              </div>
+            `,
+            narration: '▶ 対処を誤り、アドレス帳とメールデータが流出した。……辛うじてプロバイダIDだけは守り抜いた。'
+          }
+        }
+      },
+
+      3: {
+        id: 3,
+        dropdownLabel: 'Stage 3: 2010年 無線LAN期「無料Wi-Fiの甘い囁き」',
+        era: '2010年・SNS＆無線LAN普及期',
+        title: '「無料Wi-Fiの甘い囁き」',
+        deviceIcon: '💻',
+        routeLabel: '📶 暗号化なしWi-Fi',
+        timeLimit: 26,
+        pointSummary: '2010年前後はカフェなどの公衆Wi-FiとSNSが急速に普及し、暗号化されていない通信の盗聴や、フリーソフトに紛れ込む「トロイの木馬」によるパスワード窃取が多発しました。鍵なしWi-Fiでのログイン回避とパスワード使い回し防止が不可欠です。',
+        lives: [
+          { id: 'sns_pass', icon: '🔑', name: 'SNSログインPASS' },
+          { id: 'cookie', icon: '🍪', name: 'セッションCookie' },
+          { id: 'photo_pc', icon: '🖼️', name: 'PC内プライベート写真' },
+          { id: 'netbank', icon: '🏦', name: 'ネットバンキングID' }
+        ],
+        turns: {
+          start: {
+            monitorHtml: `
+              <div class="bg-slate-800/90 border border-sky-400/60 p-2 rounded space-y-1">
+                <div class="text-[10px] font-bold text-sky-300">☕ カフェの無料Wi-Fiに接続中（暗号化なし）</div>
+                <div class="text-[10px] text-slate-200">SNSにログインしようとしたところ、ポップアップが表示された：</div>
+                <div class="bg-amber-950/80 border border-amber-400 p-1 rounded text-[9px] text-amber-200">
+                  ⚠「動画再生プラグイン(Flash_Update.exe)の更新が必要です」
+                </div>
+              </div>
+            `,
+            statusText: 'POPUP DETECTED',
+            narration: '▶ 鍵なしの無料Wi-Fiに繋いだ直後、偽の更新ソフトのダウンロード画面が飛び出した！典型的なトロイの木馬と通信盗聴の二重罠だ！',
+            litLamps: 1,
+            choices: [
+              { text: 'SNSを見るため急いで更新プログラムをインストールする', proOnly: false, minLv: 1, next: 'fail_trojan' },
+              { text: '偽ポップアップを閉じ、鍵なしWi-Fiを切断して暗号化回線へ切替', proOnly: false, minLv: 1, maxLv: 1, next: 'turn2_normal' },
+              { text: '野良Wi-Fiの自動接続を解除し、モバイルルーター(WPA2)へ繋ぎ直す', proOnly: false, minLv: 2, maxLv: 2, next: 'turn2_normal' },
+              { text: 'ブラウザを強制終了して未暗号化APから離脱し、安全な回線へ切替', proOnly: false, minLv: 3, next: 'turn2_normal' },
+              { text: 'ブラウザのシークレットモードを開いて更新ファイルをDLする', proOnly: false, minLv: 2, next: 'fail_trojan' },
+              { text: 'ポップアップ内の「キャンセル」ボタンを押して無料Wi-Fiを継続', proOnly: false, minLv: 3, next: 'fail_reuse' },
+              { text: '[プロ専用] http://のままSNSへログインして様子を見る', proOnly: true, minLv: 2, next: 'fail_trojan' },
+              { text: '[プロ専用] パケットを監視しARPスプーフィングと偽バイナリを検知', proOnly: true, minLv: 1, maxLv: 1, next: 'turn2_pro', revealsGlass: true },
+              { text: '[プロ専用] SSLストリップ攻撃の兆候と偽EXE署名を解析・特定', proOnly: true, minLv: 2, next: 'turn2_pro', revealsGlass: true }
+            ]
+          },
+          turn2_normal: {
+            monitorHtml: `
+              <div class="bg-red-950/90 border border-red-500 p-2 rounded space-y-1 animate-pulse">
+                <div class="text-[10px] font-bold text-red-400">⚠ 不正ログイン試行アラート</div>
+                <div class="text-[9px] text-slate-200">先ほど漏洩した通信の断片から、他サービスのパスワード総当たり攻撃が始まった！</div>
+              </div>
+            `,
+            statusText: 'CREDENTIAL STUFFING!',
+            glitch: true,
+            narration: '▶ 偽ソフトは回避したが、暗号化なしWi-Fi経由で一部の認証情報が盗聴されていた！同じパスワードを使い回している口座が狙われている！',
+            litLamps: 3,
+            choices: [
+              { text: '主要サービスのパスワードをすべて別の複雑な文字列へ変更する', proOnly: false, minLv: 1, maxLv: 1, next: 'win_normal' },
+              { text: '使い回しを完全にやめ、サービスごとに固有の強固なPASSを設定する', proOnly: false, minLv: 2, maxLv: 2, next: 'win_normal' },
+              { text: '全セッションを強制ログアウトし、個別ランダムパスワードへ刷新する', proOnly: false, minLv: 3, next: 'win_normal' },
+              { text: '覚えやすいように同じパスワードの末尾に「1」だけ足す', proOnly: false, minLv: 1, next: 'fail_reuse' },
+              { text: 'SNSのアイコン画像を変更して別人を装う', proOnly: false, minLv: 2, next: 'fail_reuse' },
+              { text: 'ブラウザのCookieだけ削除してパスワードはそのままにする', proOnly: false, minLv: 3, next: 'fail_reuse' },
+              { text: '[プロ専用] 5インチフロッピーのライトプロテクトを有効化する', proOnly: true, minLv: 2, next: 'fail_reuse' }
+            ]
+          },
+          turn2_pro: {
+            monitorHtml: `
+              <div class="bg-cyan-950/90 border border-cyan-400 p-2 rounded space-y-0.5 font-mono text-[9px]">
+                <div class="text-cyan-300 font-bold">[PACKET CAPTURE: MITM DETECTED]</div>
+                <div class="text-slate-200">攻撃者が偽ルーターとして通信を中継(中間者攻撃)中！</div>
+              </div>
+            `,
+            statusText: 'MITM ATTACK FOUND',
+            narration: '▶ 中間者攻撃（盗聴）とトロイの木馬の仕掛けを見破った！ハッカーはあなたの「SNSパスワード」と「口座ID」を狙っている。どう迎撃する？',
+            litLamps: 2,
+            choices: [
+              { text: 'VPNトンネルを確立し、HTTPS通信強制＋パスワード変更を実行', proOnly: true, minLv: 1, maxLv: 1, next: 'win_pro' },
+              { text: 'IPsec VPNで通信を暗号化し、全トークン失効とPASS再設定を実施', proOnly: true, minLv: 2, next: 'win_pro' },
+              { text: 'Wi-Fiをオフにし、安全な環境でパスワードを個別変更する', proOnly: false, minLv: 1, maxLv: 1, next: 'win_normal' },
+              { text: '公衆無線を切断し、安全な自宅回線から固有パスワードへ変更する', proOnly: false, minLv: 2, next: 'win_normal' },
+              { text: '同じ無料Wi-Fi上でパスワード再設定メールを送信する', proOnly: false, minLv: 2, next: 'fail_reuse' },
+              { text: '[プロ専用] 攻撃者のMACアドレスへ大量のPingを送信して撃退する', proOnly: true, minLv: 2, next: 'fail_reuse' },
+              { text: '[プロ専用] ARPテーブルを固定せずブロードキャスト通信を許可する', proOnly: true, minLv: 3, next: 'fail_reuse' }
+            ]
+          }
+        },
+        outcomes: {
+          win_normal: {
+            success: true,
+            lostLives: [],
+            monitorHtml: `
+              <div class="border-2 border-cyan-400 bg-cyan-950/85 p-2.5 rounded text-center space-y-1">
+                <div class="text-lg font-black text-white">🛡️ SAFE</div>
+                <div class="text-[9px] text-cyan-300 font-bold">CONNECTION SECURED // 盗聴・乗っ取り阻止</div>
+              </div>
+            `,
+            narration: '▶ 侵入阻止に成功！安全な回線への切り替えとパスワードの個別強化により、ハッカーの盗聴工作を完全に封じ込めた！'
+          },
+          win_pro: {
+            success: true,
+            lostLives: [],
+            monitorHtml: `
+              <div class="border-2 border-cyan-400 bg-cyan-950/85 p-2.5 rounded text-center space-y-1">
+                <div class="text-lg font-black text-white">🛡️ SAFE</div>
+                <div class="text-[9px] text-amber-300 font-bold">VPN & HTTPS ENFORCED // 中間者攻撃を完封</div>
+              </div>
+            `,
+            narration: '▶ 見事なネットワーク防衛だ！VPNによる暗号化トンネルとパスワード刷新により、ハッカーは一文字も盗むことができなかった！'
+          },
+          fail_trojan: {
+            success: false,
+            lostLives: ['sns_pass', 'cookie', 'photo_pc', 'netbank'],
+            monitorHtml: `
+              <div class="bg-red-950 border border-red-500 text-red-300 p-2 rounded text-center space-y-1">
+                <div class="font-bold">TROJAN HORSE EXECUTED</div>
+                <div class="text-[9px]">遠隔操作ウイルスによりPC内の全情報が奪われた！</div>
+              </div>
+            `,
+            narration: '▶ 防御失敗。偽の更新ソフトに仕込まれたトロイの木馬が侵入し、PC内の写真もネットバンキング情報もすべて抜き取られた……！'
+          },
+          fail_reuse: {
+            success: false,
+            lostLives: ['sns_pass', 'cookie', 'netbank'],
+            monitorHtml: `
+              <div class="bg-red-950 border border-red-500 text-red-300 p-2 rounded text-center space-y-1">
+                <div class="font-bold">PASSWORD LIST ATTACKED</div>
+                <div class="text-[9px]">パスワード使い回しにより複数口座が突破された！</div>
+              </div>
+            `,
+            narration: '▶ 防御失敗。単純なパスワード変更では総当たり攻撃を防げず、SNSと口座情報が奪われた。……PC内の写真だけは辛うじて残った。'
+          }
+        }
+      },
+
+      4: {
+        id: 4,
+        dropdownLabel: 'Stage 4: 2024年 スマホ時代「ポケットの中の時限爆弾」',
+        era: '2024年・スマホ全盛期',
+        title: '「ポケットの中の時限爆弾」',
+        deviceIcon: '📱',
+        routeLabel: '📡 5G / SMS',
+        timeLimit: 25,
+        pointSummary: '現代の攻撃はSMSや偽メールで「今すぐ確認しないと凍結される」と人間の焦りを突き、リンクを踏ませるフィッシングが主流です。URLは絶対に開かず「公式アプリ」から確認すること、またランサムウェア感染時は即座に機内モードで通信を遮断しバックアップから復元することが重要です。',
+        lives: [
+          { id: 'name', icon: '📛', name: '氏名・住所' },
+          { id: 'contact', icon: '📞', name: '連絡先' },
+          { id: 'sns', icon: '🔑', name: 'SNS・ID' },
+          { id: 'bank', icon: '💳', name: 'クレカ・口座' },
+          { id: 'photo', icon: '📸', name: '写真・クラウド' }
+        ],
+        turns: {
+          start: {
+            monitorHtml: `
+              <div class="space-y-1.5">
+                <div class="bg-slate-800/90 border-l-4 border-amber-500 p-1.5 rounded text-left shadow">
+                  <div class="text-[9px] text-amber-400 font-bold">📩 新着SMS • たった今</div>
+                  <div class="text-[11px] font-bold text-white">【〇〇銀行】不正アクセスを検知しました。至急本人確認を：</div>
+                  <div class="text-[9px] text-blue-400 underline truncate">https://bank-verify-sec.xyz/login</div>
+                </div>
+              </div>
+            `,
+            statusText: '2 NEW NOTIFICATIONS',
+            narration: '▶ 銀行からの緊急警告が届き、スマホが激しく震えている。「今すぐ対応しないと口座凍結」と焦りを煽る典型的なフィッシングだ。最初の行動を選べ！',
+            litLamps: 1,
+            choices: [
+              { text: '焦ってSMSのURLをタップし、IDとパスワードを入力する', proOnly: false, minLv: 1, next: 'fail_phishing' },
+              { text: '通知を無視し、普段使っている銀行の公式アプリから確認する', proOnly: false, minLv: 1, maxLv: 1, next: 'turn2_normal' },
+              { text: 'リンクは踏まず、ブックマーク済みの正規サイトからログイン確認する', proOnly: false, minLv: 2, maxLv: 2, next: 'turn2_normal' },
+              { text: 'SMSを迷惑報告して削除し、銀行公式窓口のアプリ通知欄を確かめる', proOnly: false, minLv: 3, next: 'turn2_normal' },
+              { text: 'SMSの送信元番号に折り返し電話をかけて暗証番号を伝える', proOnly: false, minLv: 2, next: 'fail_phishing' },
+              { text: 'URLをコピーしてPCのブラウザで開いて安全か確認する', proOnly: false, minLv: 3, next: 'fail_phishing' },
+              { text: '[プロ専用] 受信したURLに直接アクセスし脆弱性診断する', proOnly: true, minLv: 2, next: 'fail_phishing' },
+              { text: '[プロ専用] メールヘッダとURLのドメイン(.xyz)を解析する', proOnly: true, minLv: 1, maxLv: 1, next: 'turn2_pro', revealsGlass: true },
+              { text: '[プロ専用] WHOIS情報とSSL証明書の発行元から偽装ドメインを特定', proOnly: true, minLv: 2, next: 'turn2_pro', revealsGlass: true }
+            ]
+          },
+          turn2_normal: {
+            monitorHtml: `
+              <div class="bg-red-950/90 border-2 border-red-500 p-2 rounded-lg text-center space-y-1 animate-pulse">
+                <div class="text-xl">☠️</div>
+                <div class="text-xs font-black text-red-400">YOUR FILES ARE ENCRYPTED!</div>
+                <div class="text-[9px] text-slate-200">ランサムウェアが写真とクラウドデータの暗号化を開始！</div>
+              </div>
+            `,
+            statusText: 'RANSOMWARE ALERT!',
+            glitch: true,
+            narration: '▶ SMSの罠は回避した。だがそれは陽動だった！別経路から侵入したランサムウェアがデータの暗号化を開始した。すべて人質に取られる前に手を打て！',
+            litLamps: 3,
+            choices: [
+              { text: 'すぐに機内モードで通信を断ち、バックアップから復元する', proOnly: false, minLv: 1, maxLv: 1, next: 'win_normal' },
+              { text: 'Wi-Fiとモバイル通信を即オフにして隔離し、初期状態から復元する', proOnly: false, minLv: 2, maxLv: 2, next: 'win_normal' },
+              { text: 'オフライン環境へ切り替えて感染拡大を止め、クリーンバックアップ適用', proOnly: false, minLv: 3, next: 'win_normal' },
+              { text: 'パニックになって表示された口座に身代金を振り込む', proOnly: false, minLv: 1, next: 'fail_ransom' },
+              { text: '暗号化された写真をクラウドへ上書き同期して修復を試みる', proOnly: false, minLv: 2, next: 'fail_ransom' },
+              { text: '怪しい「無料ランサムウェア解除ツール」を検索して入れる', proOnly: false, minLv: 3, next: 'fail_phishing' },
+              { text: '[プロ専用] 感染端末の暗号化キーの総当たり解読を試みる', proOnly: true, minLv: 2, next: 'fail_ransom' }
+            ]
+          },
+          turn2_pro: {
+            monitorHtml: `
+              <div class="bg-cyan-950/80 border border-cyan-400 p-2 rounded-lg space-y-0.5 text-left">
+                <div class="text-[10px] font-bold text-cyan-300">[THREAT INTEL: 2 ROUTES DETECTED]</div>
+                <div class="text-[10px] text-slate-200">Route 1: フィッシングSMS（陽動）</div>
+                <div class="text-[10px] text-amber-300">Route 2: 不正C2サーバーからの暗号化指令（本命）</div>
+              </div>
+            `,
+            statusText: 'DUAL ATTACK DETECTED',
+            narration: '▶ ドメイン解析により、背後に潜んでいた本命の攻撃ルートまで視認できた！ハッカーは「クレカ・口座」と「写真」を同時に狙っている。どう迎え撃つ？',
+            litLamps: 2,
+            choices: [
+              { text: '通信を遮断してOSの緊急セキュリティアップデートを適用する', proOnly: false, minLv: 1, maxLv: 1, next: 'win_normal' },
+              { text: '端末をネットワーク隔離し、ゼロデイ脆弱性の修正パッチを当てる', proOnly: false, minLv: 2, maxLv: 2, next: 'win_normal' },
+              { text: '画面の明るさを下げてバッテリー消費を抑え様子を見る', proOnly: false, minLv: 2, next: 'fail_ransom' },
+              { text: '[プロ専用] 攻撃元IPへ逆探知・逆ハッキング攻撃を仕掛ける', proOnly: true, minLv: 2, next: 'fail_ransom' },
+              { text: '[プロ専用] ファイアウォールの全ポートをフルオープンにする', proOnly: true, minLv: 3, next: 'fail_phishing' },
+              { text: '[プロ専用] 攻撃元IPをFWで即時遮断し認証トークンを再発行', proOnly: true, minLv: 1, maxLv: 1, next: 'win_pro' },
+              { text: '[プロ専用] C2通信先をDNSシンクホールで遮断し全セッションを無効化', proOnly: true, minLv: 2, next: 'win_pro' }
+            ]
+          }
+        },
+        outcomes: {
+          win_normal: {
+            success: true,
+            lostLives: [],
+            monitorHtml: `
+              <div class="border-2 border-cyan-400 bg-cyan-950/85 text-cyan-200 p-3 rounded-xl text-center space-y-1 shadow-[0_0_20px_rgba(34,211,238,0.5)]">
+                <div class="flex items-center justify-center space-x-1.5 text-cyan-300">
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm-1.06 13.54L7.4 12l1.41-1.41 2.12 2.12 4.24-4.24 1.41 1.41-5.64 5.66z"/>
+                  </svg>
+                  <span class="text-xl font-black tracking-widest text-white">SAFE</span>
+                </div>
+                <div class="text-[10px] text-cyan-300 font-bold">NETWORK ISOLATED // 全データ防衛成功</div>
+              </div>
+            `,
+            narration: '▶ 侵入阻止に成功！冷静な確認と通信遮断、そして日頃のバックアップが現代の複合攻撃を無力化した。5つの個人情報はすべて守り抜かれた！'
+          },
+          win_pro: {
+            success: true,
+            lostLives: [],
+            monitorHtml: `
+              <div class="border-2 border-cyan-400 bg-cyan-950/85 text-cyan-200 p-3 rounded-xl text-center space-y-1 shadow-[0_0_20px_rgba(34,211,238,0.5)]">
+                <div class="flex items-center justify-center space-x-1.5 text-cyan-300">
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm-1.06 13.54L7.4 12l1.41-1.41 2.12 2.12 4.24-4.24 1.41 1.41-5.64 5.66z"/>
+                  </svg>
+                  <span class="text-xl font-black tracking-widest text-white">SAFE</span>
+                </div>
+                <div class="text-[10px] text-amber-300 font-bold">ZERO-TRUST DEFENSE // 完全迎撃完了</div>
+              </div>
+            `,
+            narration: '▶ 完璧な防御対応だ！攻撃元IPのピンポイント遮断とトークン再発行により、ハッカーの二段構えの罠を完全に封じ込めた！'
+          },
+          fail_phishing: {
+            success: false,
+            lostLives: ['name', 'contact', 'sns', 'bank', 'photo'],
+            monitorHtml: `
+              <div class="bg-red-950/90 border border-red-500 p-2 rounded-lg text-center space-y-1">
+                <div class="text-xs font-bold text-red-400">ACCOUNT HIJACKED</div>
+                <div class="text-[10px] text-slate-300">ID・パスワードが盗まれ全サービスが乗っ取られた！</div>
+              </div>
+            `,
+            narration: '▶ 防御失敗。偽サイトに入力した認証情報からクラウド全体へ侵入され、すべての個人情報が奪われてしまった……！'
+          },
+          fail_ransom: {
+            success: false,
+            lostLives: ['sns', 'bank', 'photo'],
+            monitorHtml: `
+              <div class="bg-red-950/90 border border-red-500 p-2 rounded-lg text-center space-y-1">
+                <div class="text-xs font-bold text-red-400">DATA ENCRYPTED & LEAKED</div>
+                <div class="text-[10px] text-slate-300">口座情報とクラウド写真が闇サイトへ流出した！</div>
+              </div>
+            `,
+            narration: '▶ 防御失敗。暗号化と情報流出を許し、3つの重要な個人情報が奪われた。……残された2つの情報だけは辛うじて手元に残った。'
+          }
+        }
+      },
+
+      5: {
+        id: 5,
+        dropdownLabel: 'Stage 5: 2026年 AI・ディープフェイク期「画面越しの偽りの声」',
+        era: '2026年・AI＆ディープフェイク時代',
+        title: '「画面越しの偽りの声」',
+        deviceIcon: '🤖',
+        routeLabel: '🧠 AI / 生体偽装',
+        timeLimit: 24,
+        pointSummary: '2026年現在は、AIで上司や家族の「声と顔」をリアルタイムに偽装するディープフェイク詐欺と、自律型AIマルウェアが最大の脅威です。映像や声だけを信じず「別経路（電話や合言葉）での本人確認」と「ゼロトラスト認証」で対抗することが不可欠です。',
+        lives: [
+          { id: 'bio', icon: '🧬', name: '生体・声紋データ' },
+          { id: 'corp', icon: '💼', name: '機密プロジェクト' },
+          { id: 'wallet', icon: '🪙', name: 'デジタル資産' },
+          { id: 'ai_key', icon: '🤖', name: 'AIエージェント権限' }
+        ],
+        turns: {
+          start: {
+            monitorHtml: `
+              <div class="bg-fuchsia-950/50 border border-fuchsia-400/70 p-2 rounded-lg space-y-1">
+                <div class="flex items-center justify-between text-[9px] text-fuchsia-300 font-bold">
+                  <span>📹 緊急ビデオ通話：部長（本人と瓜二つの顔・声）</span>
+                  <span class="animate-pulse text-red-400">● LIVE</span>
+                </div>
+                <div class="text-[10px] text-white">「極秘案件だ！今すぐ指定口座へ送金し、AIエージェントの承認キーを共有してくれ！」</div>
+              </div>
+            `,
+            statusText: 'DEEPFAKE CALL?',
+            narration: '▶ 画面越しに上司と全く同じ顔・声で緊急送金と権限移譲を迫られている！だが映像の輪郭にわずかなAI生成ノイズが見える。どうする？',
+            litLamps: 1,
+            choices: [
+              { text: '上司の命令なので逆らわず、すぐに送金と権限共有を行う', proOnly: false, minLv: 1, next: 'fail_deepfake' },
+              { text: '通話を一旦保留し、事前登録した社内電話と合言葉で本人確認する', proOnly: false, minLv: 1, maxLv: 1, next: 'turn2_normal' },
+              { text: 'ビデオ通話を切断し、公式内線番号へ折り返して二経路確認を行う', proOnly: false, minLv: 2, maxLv: 2, next: 'turn2_normal' },
+              { text: '送金承認を凍結し、対面または社内認証システム経由で本人に照会する', proOnly: false, minLv: 3, next: 'turn2_normal' },
+              { text: 'ビデオ通話のチャット欄に「本当に部長ですか？」と質問する', proOnly: false, minLv: 2, next: 'fail_deepfake' },
+              { text: '通話画面をスクリーンショットして社内SNSに投稿する', proOnly: false, minLv: 3, next: 'fail_deepfake' },
+              { text: '[プロ専用] 画面の顔認証カメラに自分の顔を映して再認証する', proOnly: true, minLv: 2, next: 'fail_deepfake' },
+              { text: '[プロ専用] 音声スペクトルと映像フレームのAI生成痕跡を解析', proOnly: true, minLv: 1, maxLv: 1, next: 'turn2_pro', revealsGlass: true },
+              { text: '[プロ専用] 生体電子透かし(C2PA署名)とリップシンク遅延を検証する', proOnly: true, minLv: 2, next: 'turn2_pro', revealsGlass: true }
+            ]
+          },
+          turn2_normal: {
+            monitorHtml: `
+              <div class="bg-red-950/90 border border-red-500 p-2 rounded-lg space-y-1 animate-pulse">
+                <div class="text-[10px] font-bold text-red-400">⚠ AUTONOMOUS AI MALWARE DETECTED</div>
+                <div class="text-[9px] text-slate-200">偽通話の裏で、自律型AIウイルスがスマート家電経由で権限昇格を試みている！</div>
+              </div>
+            `,
+            statusText: 'AI SWARM ATTACK!',
+            glitch: true,
+            narration: '▶ 偽の上司は見破った！だが同時に、ハッカーが放った自律型AIマルウェアがIoT機器の隙間からデジタル資産へ迫っている！最後の防衛を選べ！',
+            litLamps: 3,
+            choices: [
+              { text: '端末をネットワークから隔離し、生体認証＋物理キーでロックする', proOnly: false, minLv: 1, maxLv: 1, next: 'win_normal' },
+              { text: 'IoTサブネットを遮断し、ハードウェアセキュリティキーで資産を保護', proOnly: false, minLv: 2, maxLv: 2, next: 'win_normal' },
+              { text: 'AIエージェントの外部API権限を即時停止し、パスキー認証へ切替', proOnly: false, minLv: 3, next: 'win_normal' },
+              { text: '対話AIに「ハッカーを説得して止めて」とチャットでお願いする', proOnly: false, minLv: 1, next: 'fail_ai_swarm' },
+              { text: 'スマート家電の音声アシスタントに大声で「ストップ」と叫ぶ', proOnly: false, minLv: 2, next: 'fail_ai_swarm' },
+              { text: 'AIエージェントに全自動修復権限（管理者権限）を丸投げする', proOnly: false, minLv: 3, next: 'fail_deepfake' },
+              { text: '[プロ専用] すべての認証トークンを無効化しパスワードを「1234」へ変更', proOnly: true, minLv: 2, next: 'fail_ai_swarm' }
+            ]
+          },
+          turn2_pro: {
+            monitorHtml: `
+              <div class="bg-cyan-950/90 border border-cyan-400 p-2 rounded-lg space-y-0.5 font-mono text-[9px]">
+                <div class="text-cyan-300 font-bold">[NEURAL-SHIELD: SYNTHETIC MEDIA 99.8%]</div>
+                <div class="text-slate-200">ディープフェイク生成元サーバーと自律AIの侵入経路を特定！</div>
+              </div>
+            `,
+            statusText: 'SYNTHETIC THREAT LOCKED',
+            narration: '▶ AI生成ノイズの解析により、偽通話と自律型マルウェアの連携攻撃を完全に見んだ！ハッカーの最終攻撃をどう迎え撃つ？',
+            litLamps: 2,
+            choices: [
+              { text: 'ゼロトラスト認証を強制適用し、防衛AIの異常検知モデルで遮断', proOnly: true, minLv: 1, maxLv: 1, next: 'win_pro' },
+              { text: 'マイクロセグメンテーションでIoT網を隔離し、生体FIDO2認証を強制', proOnly: true, minLv: 2, next: 'win_pro' },
+              { text: '外部ネットワークを遮断し、ファームウェアを最新へ更新する', proOnly: false, minLv: 1, maxLv: 1, next: 'win_normal' },
+              { text: '通信をオフライン化して端末を保護し、認証キーを再生成する', proOnly: false, minLv: 2, next: 'win_normal' },
+              { text: 'AIモデルの学習データにハッカーの通信ログを無検証で取り込む', proOnly: false, minLv: 2, next: 'fail_ai_swarm' },
+              { text: '[プロ専用] 偽通話の映像をSNSに公開してハッカーを威嚇する', proOnly: true, minLv: 2, next: 'fail_ai_swarm' },
+              { text: '[プロ専用] 生体認証をバイパスしてAPIキーを平文でローカル保存', proOnly: true, minLv: 3, next: 'fail_deepfake' }
+            ]
+          }
+        },
+        outcomes: {
+          win_normal: {
+            success: true,
+            lostLives: [],
+            monitorHtml: `
+              <div class="border-2 border-cyan-400 bg-cyan-950/85 p-3 rounded-xl text-center space-y-1 shadow-[0_0_20px_rgba(34,211,238,0.5)]">
+                <div class="text-xl font-black tracking-widest text-white">🛡️ SAFE</div>
+                <div class="text-[10px] text-cyan-300 font-bold">ALL ERAS DEFENDED // 全時代防衛達成</div>
+              </div>
+            `,
+            narration: '▶ 侵入阻止に成功！どれほどAI技術が進化しても、別経路での本人確認と多要素認証という基本が最大の盾となる。全時代の脅威を退けた！'
+          },
+          win_pro: {
+            success: true,
+            lostLives: [],
+            monitorHtml: `
+              <div class="border-2 border-cyan-400 bg-cyan-950/85 p-3 rounded-xl text-center space-y-1 shadow-[0_0_20px_rgba(34,211,238,0.5)]">
+                <div class="text-xl font-black tracking-widest text-white">🛡️ SAFE</div>
+                <div class="text-[10px] text-amber-300 font-bold">NEURAL ZERO-TRUST // AI攻撃完全制圧</div>
+              </div>
+            `,
+            narration: '▶ 究極のサイバー防衛だ！防衛用AIとゼロトラスト認証の連携により、自律型マルウェアを瞬時に封じ込め、ハッカーは完全に敗北した！'
+          },
+          fail_deepfake: {
+            success: false,
+            lostLives: ['bio', 'corp', 'wallet', 'ai_key'],
+            monitorHtml: `
+              <div class="bg-red-950/90 border border-red-500 p-2 rounded-lg text-center space-y-1">
+                <div class="text-xs font-bold text-red-400">DEEPFAKE SCAMMED</div>
+                <div class="text-[10px] text-slate-300">偽の上司に騙され資産と全権限を奪われた！</div>
+              </div>
+            `,
+            narration: '▶ 防御失敗。精巧なディープフェイク映像に騙され、生体データもデジタル資産もすべてハッカーの手に渡ってしまった……！'
+          },
+          fail_ai_swarm: {
+            success: false,
+            lostLives: ['corp', 'wallet', 'ai_key'],
+            monitorHtml: `
+              <div class="bg-red-950/90 border border-red-500 p-2 rounded-lg text-center space-y-1">
+                <div class="text-xs font-bold text-red-400">AI AGENT HIJACKED</div>
+                <div class="text-[10px] text-slate-300">自律型AIウイルスにより資産と機密が流出！</div>
+              </div>
+            `,
+            narration: '▶ 防御失敗。自律型マルウェアの高速侵入を許し、機密と資産が奪われた。……生体データだけは辛うじて守り抜いた。'
+          }
+        }
+      }
+    };
+
+    const STAGE_ORDER = [1, 2, 3, 4, 5];
+    const STORAGE_KEY = 'cyber_defense_save_v1';
+
+    /**
+     * Web Audio API サウンドエンジン（外部ファイル不要のシンセSE）
+     */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+        this.stageBgm = new Audio('Cyber Defense Showdown (1988-2026).mp3');
+        this.stageBgm.loop = true;
+        this.stageBgm.volume = 0.45;
+
+        this.allClearBgm = new Audio('Cyber Defense Safe Haven (Menu & Results).mp3');
+        this.allClearBgm.loop = false;
+        this.allClearBgm.volume = 0.55;
+
+        this.currentBgmType = null; // 'stage' | 'allClear' | null
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
+        }
+      }
+
+      playTone(freq, type, startOffset, duration, volume = 0.18, endFreq = null) {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime + startOffset;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        if (endFreq !== null) {
+          osc.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
+        }
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(volume, now + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + duration + 0.02);
+      }
+
+      playStageBgm() {
+        if (this.currentBgmType === 'stage') {
+          if (this.enabled && this.stageBgm.paused) {
+            this.stageBgm.play().catch(e => console.warn('Stage BGM play skipped:', e));
+          }
+          return;
+        }
+        this.stopAllBgm();
+        this.currentBgmType = 'stage';
+        if (!this.enabled) return;
+        this.stageBgm.currentTime = 0;
+        this.stageBgm.play().catch(e => console.warn('Stage BGM play skipped:', e));
+      }
+
+      playAllClearBgm() {
+        this.stopAllBgm();
+        this.currentBgmType = 'allClear';
+        if (!this.enabled) return;
+        this.allClearBgm.currentTime = 0;
+        this.allClearBgm.play().catch(e => console.warn('AllClear BGM play skipped:', e));
+      }
+
+      stopAllBgm(clearType = true) {
+        this.stageBgm.pause();
+        this.stageBgm.currentTime = 0;
+        this.allClearBgm.pause();
+        this.allClearBgm.currentTime = 0;
+        if (clearType) {
+          this.currentBgmType = null;
+        }
+      }
+
+      syncBgmState() {
+        if (!this.enabled) {
+          this.stageBgm.pause();
+          this.allClearBgm.pause();
+        } else {
+          if (this.currentBgmType === 'stage') {
+            this.stageBgm.play().catch(() => {});
+          } else if (this.currentBgmType === 'allClear') {
+            this.allClearBgm.play().catch(() => {});
+          }
+        }
+      }
+
+      // 1. 正しい選択（ターン進行・診断正解）
+      playCorrectChoice() {
+        this.playTone(587.33, 'sine', 0, 0.11, 0.18);      // D5
+        this.playTone(880.00, 'sine', 0.09, 0.18, 0.20);   // A5
+      }
+
+      // 2. 間違った選択（診断誤答・トラップ選択）
+      playWrongChoice() {
+        this.playTone(190, 'sawtooth', 0, 0.16, 0.18, 130);
+        this.playTone(145, 'sawtooth', 0.14, 0.22, 0.18, 95);
+      }
+
+      // 3. ガード成功（シールド展開・SAFE）
+      playGuardSuccess() {
+        this.playTone(523.25, 'triangle', 0, 0.12, 0.22);      // C5
+        this.playTone(659.25, 'triangle', 0.08, 0.12, 0.22);   // E5
+        this.playTone(1046.50, 'sine', 0.16, 0.35, 0.26);      // C6（キラーン）
+      }
+
+      // 4. 失敗（侵入・情報流出アラーム）
+      playBreachFail() {
+        this.playTone(720, 'square', 0, 0.12, 0.16, 360);
+        this.playTone(680, 'square', 0.14, 0.12, 0.16, 320);
+        this.playTone(220, 'sawtooth', 0.28, 0.42, 0.22, 65);
+      }
+
+      // 5. ゲームクリア（リザルト画面・勝利ファンファーレ）
+      playGameClear() {
+        this.playTone(523.25, 'triangle', 0.00, 0.14, 0.22); // C5
+        this.playTone(659.25, 'triangle', 0.12, 0.14, 0.22); // E5
+        this.playTone(783.99, 'triangle', 0.24, 0.14, 0.22); // G5
+        this.playTone(1046.50, 'triangle', 0.36, 0.48, 0.26); // C6
+      }
+
+      // 6. ゲームオーバー（リザルト画面・敗北ジングル）
+      playGameOver() {
+        this.playTone(311.13, 'sawtooth', 0.00, 0.22, 0.18); // Eb4
+        this.playTone(293.66, 'sawtooth', 0.22, 0.22, 0.18); // D4
+        this.playTone(277.18, 'sawtooth', 0.44, 0.22, 0.18); // Db4
+        this.playTone(261.63, 'sawtooth', 0.66, 0.55, 0.20, 180); // C4 -> down
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    function toggleSound() {
+      sound.enabled = !sound.enabled;
+      saveData.soundEnabled = sound.enabled;
+      persistSaveData();
+      updateSoundToggleUI();
+      sound.syncBgmState();
+      if (sound.enabled) {
+        sound.init();
+        sound.playCorrectChoice();
+      }
+    }
+
+    function updateSoundToggleUI() {
+      const btn = document.getElementById('btn-sound-toggle');
+      if (!btn) return;
+      if (sound.enabled) {
+        btn.textContent = '🔊 ON';
+        btn.className = 'px-2.5 py-1 rounded-full bg-slate-900/90 border border-emerald-500/60 text-emerald-300 text-[11px] font-extrabold shadow hover:bg-slate-800 transition active:scale-95';
+      } else {
+        btn.textContent = '🔇 OFF';
+        btn.className = 'px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700 text-slate-500 text-[11px] font-extrabold shadow hover:bg-slate-800 transition active:scale-95';
+      }
+    }
+
+    const HACKER_LAUGH_SVG = `
+      <path d="M12 28C12 16 21 8 32 8C43 8 52 16 52 28L56 48H8L12 28Z" fill="#581c87" stroke="#c084fc" stroke-width="2.5"/>
+      <ellipse cx="32" cy="31" rx="14" ry="11" fill="#1e1b4b"/>
+      <path d="M22 28L28 31L22 33Z" fill="#f43f5e"/>
+      <path d="M42 28L36 31L42 33Z" fill="#f43f5e"/>
+      <path d="M24 37Q32 43 40 37" stroke="#e879f9" stroke-width="2.5" stroke-linecap="round"/>
+    `;
+
+    const HACKER_CRY_SVG = `
+      <path d="M12 28C12 16 21 8 32 8C43 8 52 16 52 28L56 48H8L12 28Z" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5"/>
+      <ellipse cx="32" cy="31" rx="14" ry="11" fill="#0f172a"/>
+      <path d="M21 30L28 27" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M43 30L36 27" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M24 32V42" stroke="#7dd3fc" stroke-width="2" stroke-dasharray="2 2"/>
+      <path d="M40 32V42" stroke="#7dd3fc" stroke-width="2" stroke-dasharray="2 2"/>
+      <path d="M25 40Q32 34 39 40" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round"/>
+    `;
+
+    let saveData = {
+      hasPlayed: false,
+      playerRank: 'A',
+      playedStages: [],
+      maxUnlockedLevel: 1,
+      stageLifeHistory: {},
+      soundEnabled: true
+    };
+
+    let currentQuizIndex = 0;
+    let quizScore = 0;
+
+    let activeStage = null;
+    let activeThreatLevel = 1;
+    let stageTimerInterval = null;
+    let activeTimeouts = [];
+    let stageSessionId = 0;
+    let remainingTime = 0;
+    let isGlassRevealed = false;
+    let isTurnLocked = false;
+    let remainingLives = [];
+    let currentLitLamps = 0;
+    let isFinalPointShown = false;
+    let isSingleStageMode = false;
+
+    function registerTimeout(fn, delay) {
+      const id = setTimeout(() => {
+        activeTimeouts = activeTimeouts.filter(t => t !== id);
+        fn();
+      }, delay);
+      activeTimeouts.push(id);
+      return id;
+    }
+
+    function clearAllAsyncTimers() {
+      if (stageTimerInterval) {
+        clearInterval(stageTimerInterval);
+        stageTimerInterval = null;
+      }
+      activeTimeouts.forEach(id => clearTimeout(id));
+      activeTimeouts = [];
+    }
+
+    function loadSaveData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          saveData = { ...saveData, ...JSON.parse(raw) };
+        }
+      } catch (e) {
+        console.warn('Save load failed:', e);
+      }
+      if (!saveData.stageLifeHistory) saveData.stageLifeHistory = {};
+      if (!saveData.maxUnlockedLevel) saveData.maxUnlockedLevel = 1;
+      if (!Array.isArray(saveData.playedStages)) saveData.playedStages = [];
+      sound.enabled = (saveData.soundEnabled !== false);
+      updateSoundToggleUI();
+    }
+
+    function persistSaveData() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+      } catch (e) {
+        console.warn('Save persist failed:', e);
+      }
+    }
+
+    function resetSaveData() {
+      const keepSound = sound.enabled;
+      localStorage.removeItem(STORAGE_KEY);
+      saveData = {
+        hasPlayed: false,
+        playerRank: 'A',
+        playedStages: [],
+        maxUnlockedLevel: 1,
+        stageLifeHistory: {},
+        soundEnabled: keepSound
+      };
+      renderTitleScreen();
+    }
+
+    function showScreen(screenId) {
+      ['screen-title', 'screen-quiz', 'screen-game', 'screen-result'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+      document.getElementById(screenId).classList.remove('hidden');
+    }
+
+    function renderTitleScreen() {
+      showScreen('screen-title');
+      const stampEl = document.getElementById('title-rank-stamp');
+      const selectBoxEl = document.getElementById('stage-select-box');
+      const dropdownEl = document.getElementById('stage-dropdown');
+      const resetAreaEl = document.getElementById('reset-area');
+
+      if (saveData.hasPlayed) {
+        stampEl.classList.remove('hidden');
+        stampEl.textContent = saveData.playerRank === 'B'
+          ? '適性：B（プロ）'
+          : '適性：A（一般）';
+        stampEl.className = saveData.playerRank === 'B'
+          ? 'stamp-badge border-2 border-indigo-400 bg-indigo-950/90 text-indigo-200 px-3 py-1 rounded-lg font-extrabold text-xs shadow-lg'
+          : 'stamp-badge border-2 border-amber-400 bg-amber-950/80 text-amber-300 px-3 py-1 rounded-lg font-extrabold text-xs shadow-lg';
+
+        dropdownEl.innerHTML = '';
+        let firstUnlockedId = null;
+        STAGE_ORDER.forEach(stId => {
+          const st = STAGES[stId];
+          const opt = document.createElement('option');
+          opt.value = st.id;
+          const isPlayed = saveData.playedStages.includes(stId);
+          if (isPlayed) {
+            opt.textContent = st.dropdownLabel;
+            if (firstUnlockedId === null) firstUnlockedId = stId;
+          } else {
+            opt.textContent = `🔒 Stage ${stId}: ？？？ (未プレイ)`;
+            opt.disabled = true;
+          }
+          dropdownEl.appendChild(opt);
+        });
+        if (firstUnlockedId !== null) {
+          dropdownEl.value = String(firstUnlockedId);
+        }
+
+        updateGlobalLevelDropdown();
+
+        selectBoxEl.classList.remove('hidden');
+        resetAreaEl.classList.remove('hidden');
+      } else {
+        stampEl.classList.add('hidden');
+        selectBoxEl.classList.add('hidden');
+        resetAreaEl.classList.add('hidden');
+      }
+    }
+
+    function updateGlobalLevelDropdown() {
+      const maxLv = saveData.maxUnlockedLevel || 1;
+      const lvSelect = document.getElementById('global-level-dropdown');
+      lvSelect.innerHTML = '';
+
+      const labels = {
+        1: '脅威 Lv.1（通常）',
+        2: '脅威 Lv.2（高度・罠増）',
+        3: '脅威 Lv.3（極限・シャッフル）'
+      };
+
+      for (let lv = 1; lv <= 3; lv++) {
+        const opt = document.createElement('option');
+        opt.value = lv;
+        if (lv <= maxLv) {
+          opt.textContent = labels[lv];
+        } else {
+          opt.textContent = `🔒 Lv.${lv}（前Lv全クリアで解放）`;
+          opt.disabled = true;
+        }
+        lvSelect.appendChild(opt);
+      }
+      lvSelect.value = String(maxLv);
+    }
+
+    function startFromBeginning() {
+      sound.init();
+      sound.playCorrectChoice();
+      sound.playStageBgm();
+      isSingleStageMode = false;
+      const lvSelect = document.getElementById('global-level-dropdown');
+      activeThreatLevel = (saveData.hasPlayed && lvSelect) ? (Number(lvSelect.value) || 1) : 1;
+      saveData.stageLifeHistory = {};
+      persistSaveData();
+      currentQuizIndex = 0;
+      quizScore = 0;
+      showScreen('screen-quiz');
+      renderQuizQuestion();
+    }
+
+    function startSelectedStage() {
+      sound.init();
+      sound.playCorrectChoice();
+      sound.playStageBgm();
+      isSingleStageMode = true;
+      const selectedId = Number(document.getElementById('stage-dropdown').value) || 1;
+      const selectedLv = Number(document.getElementById('global-level-dropdown').value) || 1;
+      startStage(selectedId, selectedLv);
+    }
+
+    function renderQuizQuestion() {
+      const q = QUIZ_QUESTIONS[currentQuizIndex];
+      document.getElementById('quiz-progress').textContent = `${currentQuizIndex + 1} / ${QUIZ_QUESTIONS.length}`;
+      document.getElementById('quiz-category').textContent = q.category;
+      document.getElementById('quiz-question').textContent = q.question;
+      document.getElementById('quiz-narration').textContent = `▶ 第${currentQuizIndex + 1}問だ。普段のあなたの行動に最も近いものを選択してほしい。`;
+
+      const choicesEl = document.getElementById('quiz-choices');
+      choicesEl.innerHTML = '';
+
+      q.options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'rpg-btn w-full h-[54px] px-3 rounded-xl text-left text-xs sm:text-sm font-semibold text-slate-100 flex items-center space-x-2 overflow-hidden';
+        btn.innerHTML = `<span class="text-cyan-400 shrink-0">▶</span><span class="line-clamp-2 leading-snug">${opt.text}</span>`;
+        btn.onclick = () => handleQuizAnswer(opt.score);
+        choicesEl.appendChild(btn);
+      });
+    }
+
+    function handleQuizAnswer(points) {
+      if (points > 0) {
+        sound.playCorrectChoice();
+      } else {
+        sound.playWrongChoice();
+      }
+      quizScore += points;
+      currentQuizIndex++;
+
+      if (currentQuizIndex < QUIZ_QUESTIONS.length) {
+        renderQuizQuestion();
+      } else {
+        const rank = quizScore >= 4 ? 'B' : 'A';
+        saveData.playerRank = rank;
+        saveData.hasPlayed = true;
+        persistSaveData();
+
+        const choicesEl = document.getElementById('quiz-choices');
+        document.getElementById('quiz-category').textContent = 'DIAGNOSIS COMPLETE';
+        document.getElementById('quiz-question').textContent = rank === 'B'
+          ? '判定結果：【適性 B】セキュリティエンジニア'
+          : '判定結果：【適性 A】一般ユーザー';
+
+        document.getElementById('quiz-narration').textContent = rank === 'B'
+          ? '▶ 測定完了。ネットワークの深層を見通す目を持っているようだ。専門の解析・迎撃コマンドが解放された！'
+          : '▶ 測定完了。日常の防衛本能は備わっている。基本的な防衛コマンドを駆使して脅威を退けろ！';
+
+        choicesEl.innerHTML = `
+          <button onclick="startStage(1, activeThreatLevel)" class="w-full h-[54px] rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-extrabold text-sm sm:text-base shadow-lg active:scale-95">
+            Stage 1（1988年・脅威Lv.${activeThreatLevel}）へ進む ▶
+          </button>
+        `;
+      }
+    }
+
+    function setDomainBalance(mode) {
+      const hackerEl = document.getElementById('hacker-domain');
+      if (mode === 'hacker') {
+        hackerEl.style.height = '185px';
+      } else {
+        hackerEl.style.height = '84px';
+      }
+    }
+
+    function setLitLampsCount(count, isStaticResult = false) {
+      currentLitLamps = Math.max(0, Math.min(5, count));
+      for (let i = 1; i <= 5; i++) {
+        const lamp = document.getElementById(`route-lamp-${i}`);
+        if (!lamp) continue;
+        lamp.classList.remove('lamp-node-lit', 'bg-red-500', 'border-red-200', 'shadow-[0_0_12px_#ef4444]', 'bg-slate-800', 'border-slate-500');
+        if (i <= currentLitLamps) {
+          if (isStaticResult) {
+            lamp.classList.add('bg-red-500', 'border-red-200', 'shadow-[0_0_12px_#ef4444]');
+          } else {
+            lamp.classList.add('lamp-node-lit');
+          }
+        } else {
+          lamp.classList.add('bg-slate-800', 'border-slate-500');
+        }
+      }
+    }
+
+    function stopAllHardwareAnimations() {
+      ['pc88-crt-screen', 'win98-crt-screen', 'laptop-inner-screen', 'phone-inner-screen', 'hardware-ai2026', 'hardware-smartphone'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.classList.remove('animate-glitch', 'animate-vibrate');
+        }
+      });
+    }
+
+    function startStage(stageId, threatLevel = activeThreatLevel) {
+      activeStage = STAGES[stageId];
+      if (!activeStage) return;
+      activeThreatLevel = threatLevel;
+
+      clearAllAsyncTimers();
+      stageSessionId++;
+      const currentSession = stageSessionId;
+      isTurnLocked = true;
+
+      sound.playStageBgm();
+      showScreen('screen-game');
+
+      if (!saveData.playedStages.includes(stageId)) {
+        saveData.playedStages.push(stageId);
+        persistSaveData();
+      }
+
+      stopAllHardwareAnimations();
+      hideAllHardware();
+      const hwId = getHardwareId(activeStage.id);
+      document.getElementById(hwId).classList.remove('hidden');
+
+      setDomainBalance('hacker');
+      isGlassRevealed = false;
+      const frostedEl = document.getElementById('frosted-overlay');
+      frostedEl.classList.add('revealed');
+
+      document.getElementById('lamp-shield-badge').classList.add('hidden');
+      document.getElementById('breach-flash-overlay').classList.add('hidden');
+      document.getElementById('hacker-svg').innerHTML = HACKER_LAUGH_SVG;
+      document.getElementById('hacker-laugh-badge').textContent = 'ケタケタ！';
+      document.getElementById('route-node-label').textContent = activeStage.routeLabel;
+      document.getElementById('target-device-icon').textContent = activeStage.deviceIcon;
+      document.getElementById('game-level-badge').textContent = `Lv.${activeThreatLevel}`;
+      setLitLampsCount(1);
+
+      const startTurnData = activeStage.turns.start;
+      updateMonitorDisplay(startTurnData.monitorHtml, startTurnData.statusText);
+      document.getElementById('game-narration').textContent = '▶ 敵の気配を検知……状況を解析中！';
+      document.getElementById('game-choices').innerHTML = '';
+
+      remainingLives = activeStage.lives.map(l => ({ ...l, intact: true }));
+      renderLifeSlots();
+
+      const bannerOverlay = document.getElementById('stage-banner-overlay');
+      const bannerEra = document.getElementById('banner-era');
+      const bannerTitle = document.getElementById('banner-title');
+      const bannerBox = document.getElementById('stage-banner-box');
+
+      bannerEra.textContent = activeStage.era;
+      bannerTitle.textContent = activeStage.title;
+      bannerOverlay.classList.remove('hidden');
+      bannerBox.classList.remove('animate-banner');
+      void bannerBox.offsetWidth;
+      bannerBox.classList.add('animate-banner');
+
+      registerTimeout(() => {
+        if (stageSessionId !== currentSession) return;
+        bannerOverlay.classList.add('hidden');
+        bannerBox.classList.remove('animate-banner');
+
+        registerTimeout(() => {
+          if (stageSessionId !== currentSession) return;
+          frostedEl.classList.remove('revealed');
+          isGlassRevealed = false;
+          startTurn('start');
+        }, 1500);
+      }, 2200);
+    }
+
+    function renderLifeSlots() {
+      const container = document.getElementById('life-slots-container');
+      container.innerHTML = '';
+      remainingLives.forEach(life => {
+        const badge = document.createElement('div');
+        if (life.intact) {
+          badge.className = 'flex items-center space-x-1 bg-slate-950 border border-slate-700 px-1.5 py-0.5 rounded-md text-[10px] text-slate-200';
+          badge.innerHTML = `<span>${life.icon}</span><span class="font-bold">${life.name}</span>`;
+        } else {
+          badge.className = 'flex items-center space-x-1 bg-red-950/60 border border-red-500/80 px-1.5 py-0.5 rounded-md text-[10px] text-red-300 line-through opacity-75';
+          badge.innerHTML = `<span>${life.icon}</span><span>${life.name}</span>`;
+        }
+        container.appendChild(badge);
+      });
+    }
+
+    function getHardwareId(stageId) {
+      if (stageId === 1) return 'hardware-pc88';
+      if (stageId === 2) return 'hardware-win98';
+      if (stageId === 3) return 'hardware-laptop2010';
+      if (stageId === 4) return 'hardware-smartphone';
+      return 'hardware-ai2026';
+    }
+
+    function hideAllHardware() {
+      ['hardware-pc88', 'hardware-smartphone', 'hardware-win98', 'hardware-laptop2010', 'hardware-ai2026'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+    }
+
+    function startTurn(turnKey) {
+      if (stageTimerInterval) {
+        clearInterval(stageTimerInterval);
+        stageTimerInterval = null;
+      }
+      stopAllHardwareAnimations();
+      setDomainBalance('normal');
+      isTurnLocked = false;
+
+      const currentSession = stageSessionId;
+      const turnData = activeStage.turns[turnKey];
+      document.getElementById('game-narration').textContent = turnData.narration;
+
+      const lampShield = document.getElementById('lamp-shield-badge');
+      const breachFlash = document.getElementById('breach-flash-overlay');
+      const hackerAvatar = document.getElementById('hacker-avatar');
+      const hackerSvg = document.getElementById('hacker-svg');
+      const laughBadge = document.getElementById('hacker-laugh-badge');
+
+      lampShield.classList.add('hidden');
+      breachFlash.classList.add('hidden');
+      hackerAvatar.classList.remove('animate-breach', 'border-red-500');
+      hackerAvatar.classList.add('border-purple-400');
+      hackerSvg.innerHTML = HACKER_LAUGH_SVG;
+      laughBadge.textContent = 'ケタケタ！';
+      laughBadge.className = 'text-[9px] font-extrabold text-purple-200 bg-purple-950/90 border border-purple-500/60 px-1.5 py-0.2 rounded mt-0.5';
+
+      document.getElementById('route-node-label').textContent = activeStage.routeLabel;
+      document.getElementById('target-device-icon').textContent = activeStage.deviceIcon;
+
+      const rankBadgeTexts = saveData.playerRank === 'B' ? '適性: B(プロ)' : '適性: A';
+      const rankBadgeClasses = saveData.playerRank === 'B' ? 'font-bold text-indigo-400' : 'font-bold text-cyan-400';
+
+      document.querySelectorAll('.pc88-rank-label, .phone-rank-label, .win98-rank-label, .laptop-rank-label, .ai-rank-label').forEach(el => {
+        el.textContent = rankBadgeTexts;
+        el.className = rankBadgeClasses;
+      });
+
+      document.getElementById('game-level-badge').textContent = `Lv.${activeThreatLevel}`;
+
+      hideAllHardware();
+      const hwId = getHardwareId(activeStage.id);
+      document.getElementById(hwId).classList.remove('hidden');
+
+      if (turnData.glitch) {
+        if (activeStage.id === 1) document.getElementById('pc88-crt-screen').classList.add('animate-glitch');
+        if (activeStage.id === 2) document.getElementById('win98-crt-screen').classList.add('animate-glitch');
+        if (activeStage.id === 3) document.getElementById('laptop-inner-screen').classList.add('animate-glitch');
+        if (activeStage.id === 4) document.getElementById('phone-inner-screen').classList.add('animate-glitch');
+        if (activeStage.id === 5) document.getElementById('hardware-ai2026').classList.add('animate-glitch');
+      }
+
+      updateMonitorDisplay(turnData.monitorHtml, turnData.statusText);
+
+      let initialLamps = turnData.litLamps || 1;
+      setLitLampsCount(initialLamps);
+
+      remainingTime = activeStage.timeLimit;
+      if (activeThreatLevel === 2) remainingTime = Math.max(12, remainingTime - 4);
+      if (activeThreatLevel === 3) remainingTime = Math.max(10, remainingTime - 7);
+
+      const timerEl = document.getElementById('timer-display');
+      timerEl.textContent = remainingTime.toFixed(1) + 's';
+
+      const maxLimit = activeStage.timeLimit;
+      const stepTime = maxLimit / 4;
+
+      stageTimerInterval = setInterval(() => {
+        if (stageSessionId !== currentSession || isTurnLocked) {
+          clearInterval(stageTimerInterval);
+          return;
+        }
+        remainingTime -= 0.1;
+        if (remainingTime < 0) remainingTime = 0;
+        timerEl.textContent = remainingTime.toFixed(1) + 's';
+
+        const elapsed = maxLimit - remainingTime;
+        let targetLamps = initialLamps + Math.floor(elapsed / stepTime);
+        if (targetLamps > 4) targetLamps = 4;
+        setLitLampsCount(targetLamps);
+
+        if (remainingTime <= 0) {
+          clearInterval(stageTimerInterval);
+          stageTimerInterval = null;
+          isTurnLocked = true;
+          const fallbackFailKey = Object.keys(activeStage.outcomes).find(k => k.startsWith('fail_')) || 'fail_direct';
+          resolveOutcome(fallbackFailKey);
+        }
+      }, 100);
+
+      renderChoices(turnData.choices, turnKey);
+    }
+
+    function updateMonitorDisplay(html, statusText) {
+      if (activeStage.id === 1) {
+        document.getElementById('pc88-monitor-content').innerHTML = html;
+        document.getElementById('pc88-status-text').textContent = 'STATUS: ' + statusText;
+      } else if (activeStage.id === 2) {
+        document.getElementById('win98-monitor-content').innerHTML = html;
+        document.getElementById('win98-status-text').textContent = statusText;
+      } else if (activeStage.id === 3) {
+        document.getElementById('laptop-monitor-content').innerHTML = html;
+        document.getElementById('laptop-status-text').textContent = 'WIFI: ' + statusText;
+      } else if (activeStage.id === 4) {
+        document.getElementById('phone-monitor-content').innerHTML = html;
+        document.getElementById('phone-status-text').textContent = 'STATUS: ' + statusText;
+      } else if (activeStage.id === 5) {
+        document.getElementById('ai-monitor-content').innerHTML = html;
+        document.getElementById('ai-status-text').textContent = statusText;
+      }
+    }
+
+    function renderChoices(choices, turnKey) {
+      const container = document.getElementById('game-choices');
+      container.innerHTML = '';
+
+      const isProPlayer = (saveData.playerRank === 'B');
+
+      let availableChoices = choices.filter(c => {
+        if (c.proOnly && !isProPlayer) return false;
+        if (activeThreatLevel === 1 && c.minLv && c.minLv > 1) return false;
+        if (activeThreatLevel === 2 && c.maxLv && c.maxLv < 2) return false;
+        return true;
+      });
+
+      if (availableChoices.length === 0) {
+        availableChoices = choices.filter(c => !c.proOnly || isProPlayer);
+      }
+
+      if (activeThreatLevel === 3) {
+        availableChoices = [...availableChoices].sort(() => Math.random() - 0.5);
+      }
+
+      availableChoices.forEach(choice => {
+        const btn = document.createElement('button');
+        if (choice.proOnly) {
+          btn.className = 'pro-btn w-full h-[54px] px-3 rounded-xl text-left text-xs sm:text-sm font-bold text-indigo-100 flex items-center space-x-2 overflow-hidden shadow';
+          btn.innerHTML = `<span class="text-indigo-400 shrink-0">🛡️</span><span class="line-clamp-2 leading-snug">${choice.text}</span>`;
+        } else {
+          btn.className = 'rpg-btn w-full h-[54px] px-3 rounded-xl text-left text-xs sm:text-sm font-semibold text-slate-100 flex items-center space-x-2 overflow-hidden';
+          btn.innerHTML = `<span class="text-cyan-400 shrink-0">▶</span><span class="line-clamp-2 leading-snug">${choice.text}</span>`;
+        }
+        btn.onclick = () => chooseAction(choice);
+        container.appendChild(btn);
+      });
+    }
+
+    function chooseAction(choice) {
+      if (isTurnLocked) return;
+      isTurnLocked = true;
+
+      if (stageTimerInterval) {
+        clearInterval(stageTimerInterval);
+        stageTimerInterval = null;
+      }
+      stopAllHardwareAnimations();
+
+      if (choice.revealsGlass && !isGlassRevealed) {
+        document.getElementById('frosted-overlay').classList.add('revealed');
+        isGlassRevealed = true;
+      }
+
+      if (choice.next.startsWith('win_') || choice.next.startsWith('fail_')) {
+        if (choice.next.startsWith('fail_')) {
+          sound.playWrongChoice();
+        }
+        resolveOutcome(choice.next);
+      } else {
+        sound.playCorrectChoice();
+        startTurn(choice.next);
+      }
+    }
+
+    function animateStolenLives(lostIds) {
+      lostIds.forEach(id => {
+        const life = remainingLives.find(l => l.id === id);
+        if (!life) return;
+
+        const el = document.createElement('div');
+        el.className = 'flying-stolen-item text-xl bg-slate-900 border border-slate-700 px-2 py-1 rounded-lg shadow-xl';
+        el.textContent = life.icon;
+
+        const slots = document.getElementById('life-slots-container');
+        const rect = slots.getBoundingClientRect();
+        el.style.left = (rect.left + 20) + 'px';
+        el.style.top = (rect.top + 10) + 'px';
+        document.body.appendChild(el);
+
+        setTimeout(() => {
+          const hackerAvatar = document.getElementById('hacker-avatar').getBoundingClientRect();
+          el.style.transform = `translate(${hackerAvatar.left - rect.left}px, ${hackerAvatar.top - rect.top}px) scale(0.2)`;
+          el.style.opacity = '0';
+        }, 50);
+
+        setTimeout(() => el.remove(), 700);
+      });
+    }
+
+    function resolveOutcome(outcomeKey) {
+      clearAllAsyncTimers();
+      isTurnLocked = true;
+      stopAllHardwareAnimations();
+      setDomainBalance('hacker');
+
+      document.getElementById('frosted-overlay').classList.add('revealed');
+      isGlassRevealed = true;
+
+      const outcome = activeStage.outcomes[outcomeKey];
+      const currentSession = stageSessionId;
+      const lampShield = document.getElementById('lamp-shield-badge');
+      const breachFlash = document.getElementById('breach-flash-overlay');
+      const hackerAvatar = document.getElementById('hacker-avatar');
+      const hackerSvg = document.getElementById('hacker-svg');
+      const laughBadge = document.getElementById('hacker-laugh-badge');
+
+      if (outcome.success) {
+        sound.playGuardSuccess();
+        const defendedCount = currentLitLamps;
+        setLitLampsCount(defendedCount, true);
+        lampShield.classList.remove('hidden');
+        breachFlash.classList.add('hidden');
+
+        hackerSvg.innerHTML = HACKER_CRY_SVG;
+        hackerAvatar.classList.remove('border-purple-400');
+        hackerAvatar.classList.add('border-cyan-400');
+        laughBadge.textContent = 'くやしい…';
+        laughBadge.className = 'text-[9px] font-extrabold text-cyan-200 bg-cyan-950/90 border border-cyan-500/60 px-1.5 py-0.2 rounded mt-0.5';
+
+        updateMonitorDisplay(outcome.monitorHtml, 'SECURED');
+      } else {
+        sound.playBreachFail();
+        setLitLampsCount(5);
+        lampShield.classList.add('hidden');
+        breachFlash.classList.remove('hidden');
+
+        hackerSvg.innerHTML = HACKER_LAUGH_SVG;
+        hackerAvatar.classList.add('animate-breach', 'border-red-500');
+        laughBadge.textContent = 'ケタケタ！';
+        laughBadge.className = 'text-[9px] font-extrabold text-red-200 bg-red-950/95 border border-red-500 px-1.5 py-0.2 rounded mt-0.5';
+
+        updateMonitorDisplay(outcome.monitorHtml, 'BREACH DETECTED');
+
+        if (outcome.lostLives && outcome.lostLives.length > 0) {
+          animateStolenLives(outcome.lostLives);
+        }
+
+        remainingLives.forEach(life => {
+          if (outcome.lostLives.includes(life.id)) {
+            life.intact = false;
+          }
+        });
+        registerTimeout(() => {
+          if (stageSessionId === currentSession) renderLifeSlots();
+        }, 550);
+      }
+
+      document.getElementById('game-narration').textContent = outcome.narration;
+
+      saveData.stageLifeHistory[activeStage.id] = remainingLives.map(l => ({
+        stageId: activeStage.id,
+        icon: l.icon,
+        name: l.name,
+        intact: l.intact
+      }));
+      persistSaveData();
+
+      const choicesContainer = document.getElementById('game-choices');
+      choicesContainer.innerHTML = `
+        <button onclick="showResultScreen(${outcome.success})" class="w-full h-[50px] rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-extrabold text-sm sm:text-base shadow-lg transition active:scale-95">
+          リザルトを見る ▶
+        </button>
+      `;
+    }
+
+    function getNextStageId(currentId) {
+      const idx = STAGE_ORDER.indexOf(currentId);
+      if (idx !== -1 && idx + 1 < STAGE_ORDER.length) {
+        return STAGE_ORDER[idx + 1];
+      }
+      return null;
+    }
+
+    function toggleFinalResultView() {
+      isFinalPointShown = !isFinalPointShown;
+      const scoreBox = document.getElementById('result-final-score-box');
+      const pointBox = document.getElementById('result-final-point-box');
+      const toggleBtn = document.getElementById('btn-toggle-point');
+
+      if (isFinalPointShown) {
+        scoreBox.classList.add('hidden');
+        pointBox.classList.remove('hidden');
+        toggleBtn.textContent = '🏆 総合スコア表示に戻る';
+      } else {
+        scoreBox.classList.remove('hidden');
+        pointBox.classList.add('hidden');
+        toggleBtn.textContent = '💡 ポイント解説を読む';
+      }
+    }
+
+    function showResultScreen(isSuccess) {
+      showScreen('screen-result');
+
+      const nextStageId = getNextStageId(activeStage.id);
+      const isFinalStage = (nextStageId === null);
+      const showSingleOrAllScoreMode = isFinalStage || isSingleStageMode;
+
+      document.getElementById('result-stage-label').textContent = `STAGE ${activeStage.id} // ${activeStage.era}`;
+      const headingEl = document.getElementById('result-heading');
+      const lifeHeaderEl = document.getElementById('result-life-header');
+      const summaryEl = document.getElementById('result-life-summary');
+      const midPointBox = document.getElementById('result-mid-point-box');
+      const finalArea = document.getElementById('result-final-area');
+      const nextBtn = document.getElementById('btn-next-stage');
+      const nextCampaignLvBtn = document.getElementById('btn-next-campaign-level');
+
+      const intactCount = remainingLives.filter(l => l.intact).length;
+
+      if (isFinalStage && !isSingleStageMode && isSuccess && intactCount === remainingLives.length) {
+        if ((saveData.maxUnlockedLevel || 1) <= activeThreatLevel && activeThreatLevel < 3) {
+          saveData.maxUnlockedLevel = activeThreatLevel + 1;
+          persistSaveData();
+        }
+      }
+
+      const maxUnlockedLv = saveData.maxUnlockedLevel || 1;
+
+      if (isFinalStage && !isSingleStageMode && isSuccess && activeThreatLevel < maxUnlockedLv && activeThreatLevel < 3) {
+        nextCampaignLvBtn.classList.remove('hidden');
+        nextCampaignLvBtn.textContent = `🔥 脅威 Lv.${activeThreatLevel + 1} に挑戦する ▶`;
+      } else {
+        nextCampaignLvBtn.classList.add('hidden');
+      }
+
+      if (isSuccess && intactCount === remainingLives.length) {
+        if (isFinalStage && !isSingleStageMode) {
+          sound.playAllClearBgm();
+        } else {
+          if (isSingleStageMode) sound.stopAllBgm();
+          sound.playGameClear();
+        }
+        headingEl.textContent = isFinalStage && !isSingleStageMode ? 'ALL STAGES CLEAR!' : 'STAGE CLEAR!';
+        headingEl.className = 'text-2xl sm:text-3xl font-black tracking-wide text-cyan-400';
+      } else if (intactCount > 0) {
+        if (isSingleStageMode) sound.stopAllBgm();
+        sound.playGameOver();
+        headingEl.textContent = 'PARTIAL BREACH...';
+        headingEl.className = 'text-2xl sm:text-3xl font-black tracking-wide text-amber-400';
+      } else {
+        if (isSingleStageMode) sound.stopAllBgm();
+        sound.playGameOver();
+        headingEl.textContent = 'DEFENSE FAILED...';
+        headingEl.className = 'text-2xl sm:text-3xl font-black tracking-wide text-red-500';
+      }
+
+      summaryEl.innerHTML = '';
+
+      if (showSingleOrAllScoreMode) {
+        midPointBox.classList.add('hidden');
+        finalArea.classList.remove('hidden');
+        nextBtn.classList.add('hidden');
+
+        isFinalPointShown = false;
+        document.getElementById('result-final-score-box').classList.remove('hidden');
+        document.getElementById('result-final-point-box').classList.add('hidden');
+        document.getElementById('btn-toggle-point').textContent = '💡 ポイント解説を読む';
+        document.getElementById('result-final-point-text').textContent = activeStage.pointSummary;
+
+        if (isSingleStageMode) {
+          lifeHeaderEl.textContent = `STAGE ${activeStage.id} 個人情報防衛ステータス`;
+          document.getElementById('result-score-caption').textContent = `STAGE ${activeStage.id} SCORE // 単体防衛評価`;
+          document.getElementById('result-bonus-note').textContent = `このステージの個人情報保持率（${intactCount} / ${remainingLives.length} 保持）`;
+
+          const singleScore = Math.round((intactCount / remainingLives.length) * 100);
+          document.getElementById('result-score-value').textContent = singleScore;
+
+          remainingLives.forEach(life => {
+            const row = document.createElement('div');
+            row.className = 'flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-slate-950/80 border border-slate-800';
+            row.innerHTML = `
+              <span class="flex items-center space-x-2">
+                <span>${life.icon}</span>
+                <span class="font-semibold text-slate-200">${life.name}</span>
+              </span>
+              ${life.intact
+                ? '<span class="text-emerald-400 font-extrabold">SAFE（防衛成功）</span>'
+                : '<span class="text-red-400 font-extrabold">LEAKED（情報流出）</span>'}
+            `;
+            summaryEl.appendChild(row);
+          });
+        } else {
+          lifeHeaderEl.textContent = '全ステージ累計・個人情報防衛ステータス';
+          document.getElementById('result-score-caption').textContent = 'ALL STAGES TOTAL SCORE // 総合防衛評価';
+
+          let totalIntact = 0;
+          let totalLivesCount = 0;
+
+          STAGE_ORDER.forEach(stId => {
+            const st = STAGES[stId];
+            const historyList = saveData.stageLifeHistory[stId] || st.lives.map(l => ({
+              stageId: stId,
+              icon: l.icon,
+              name: l.name,
+              intact: false
+            }));
+
+            historyList.forEach(item => {
+              totalLivesCount++;
+              if (item.intact) totalIntact++;
+
+              const row = document.createElement('div');
+              row.className = 'flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-slate-950/80 border border-slate-800';
+              row.innerHTML = `
+                <span class="flex items-center space-x-1.5">
+                  <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-cyan-300 border border-slate-700">ST.${stId}</span>
+                  <span>${item.icon}</span>
+                  <span class="font-semibold text-slate-200">${item.name}</span>
+                </span>
+                ${item.intact
+                  ? '<span class="text-emerald-400 font-extrabold">SAFE</span>'
+                  : '<span class="text-red-400 font-extrabold">LEAKED</span>'}
+              `;
+              summaryEl.appendChild(row);
+            });
+          });
+
+          const finalScore = totalLivesCount > 0 ? Math.round((totalIntact / totalLivesCount) * 100) : 0;
+          document.getElementById('result-score-value').textContent = finalScore;
+          document.getElementById('result-bonus-note').textContent = `全時代の個人情報保持率（${totalIntact} / ${totalLivesCount} 保持）`;
+        }
+
+      } else {
+        lifeHeaderEl.textContent = 'この時代の個人情報防衛ステータス';
+        midPointBox.classList.remove('hidden');
+        finalArea.classList.add('hidden');
+        document.getElementById('result-mid-point-text').textContent = activeStage.pointSummary;
+
+        remainingLives.forEach(life => {
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg bg-slate-950/80 border border-slate-800';
+          row.innerHTML = `
+            <span class="flex items-center space-x-2">
+              <span>${life.icon}</span>
+              <span class="font-semibold text-slate-200">${life.name}</span>
+            </span>
+            ${life.intact
+              ? '<span class="text-emerald-400 font-extrabold">SAFE（防衛成功）</span>'
+              : '<span class="text-red-400 font-extrabold">LEAKED（情報流出）</span>'}
+          `;
+          summaryEl.appendChild(row);
+        });
+
+        nextBtn.classList.remove('hidden');
+        nextBtn.textContent = `次のステージへ進む（Stage ${nextStageId}） ▶`;
+      }
+    }
+
+    function goToNextStage() {
+      const nextId = getNextStageId(activeStage.id);
+      if (nextId) {
+        startStage(nextId, activeThreatLevel);
+      } else {
+        returnToTitle();
+      }
+    }
+
+    function startNextCampaignLevel() {
+      if (activeThreatLevel < 3) {
+        isSingleStageMode = false;
+        saveData.stageLifeHistory = {};
+        persistSaveData();
+        startStage(1, activeThreatLevel + 1);
+      }
+    }
+
+    function retryCurrentStage() {
+      if (activeStage) {
+        startStage(activeStage.id, activeThreatLevel);
+      }
+    }
+
+    function returnToTitle() {
+      clearAllAsyncTimers();
+      sound.stopAllBgm();
+      stageSessionId++;
+      isTurnLocked = true;
+      renderTitleScreen();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSaveData();
+      renderTitleScreen();
+    });
+  </script>
+</body>
+</html>
